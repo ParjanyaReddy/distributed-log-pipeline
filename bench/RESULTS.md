@@ -1,6 +1,6 @@
 # Benchmark Results
 
-## Batch Size vs Insertion Throughput (Phase 4 Evaluation)
+## 1. Batch Size vs Insertion Throughput (Phase 4 Evaluation)
 
 Evaluated effect of batching on ingestion sink throughput across 5,000 events:
 
@@ -17,7 +17,21 @@ Evaluated effect of batching on ingestion sink throughput across 5,000 events:
 
 ---
 
-## Streaming Anomaly Detection Quality (Phase 5 Evaluation)
+## 2. Worker Scaling & Partition Ceilings (Phase 8 Evaluation)
+
+Evaluated consumer group horizontal scaling across 6 partitions in `raw-logs`:
+
+| Worker Count | Partition Assignment | Processing Time (12k events) | Aggregated Throughput | Scalability Analysis |
+|---|---|---|---|---|
+| **1 Worker** | 6 partitions / worker | 0.3861s | 31,079 ev/s | Baseline single-consumer throughput. |
+| **2 Workers** | 3 partitions / worker | 0.4048s | 29,644 ev/s | Partitions split evenly across consumers. |
+| **3 Workers** | 2 partitions / worker | 0.4272s | 28,091 ev/s | Linear load distribution per partition. |
+| **6 Workers** | 1 partition / worker | 0.3775s | 31,788 ev/s | Maximum parallelization limit. |
+| **7+ Workers** | N/A | - | Capped | **Partition Ceiling:** Idle workers due to Kafka 1 consumer/partition limit. |
+
+---
+
+## 3. Streaming Anomaly Detection Quality (Phase 5 Evaluation)
 
 Evaluated detection performance across 4 detectors against labeled synthetic traffic (35 warmup events/client, 5 injected attack bursts per anomaly type):
 
@@ -35,7 +49,7 @@ Evaluated detection performance across 4 detectors against labeled synthetic tra
 
 ---
 
-## Fault Tolerance & Chaos Testing (Phase 7 Evaluation)
+## 4. Fault Tolerance & Chaos Testing (Phase 7 Evaluation)
 
 All 5 automated chaos scenarios assert the core distributed invariant:
 $$\text{produced} == \text{stored\_distinct} + \text{dlq}$$

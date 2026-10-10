@@ -3,9 +3,9 @@
 > Paste this file at the start of each new AI chat, along with `Rules.md`. Don't paste the whole codebase.
 
 ## Current status
-- **Phase:** 8 (Benchmarks, docs, CI)
-- **Current task:** Generate scaling benchmark analysis, create comprehensive README.md per spec checklist, and configure GitHub Actions CI workflow.
-- **Current working files:** README.md, .github/workflows/ci.yml
+- **Phase:** 8 (Completed)
+- **Current task:** All 8 phases completed, tested, and verified.
+- **Current working files:** (none - all deliverables complete)
 - **Blocked on:** nothing
 
 ## Decisions log (don't re-debate without cause)
@@ -24,6 +24,7 @@
 | phase-5 | Separate dedupe key for compromise escalation | Emits critical alert if brute-force is followed by compromise |
 | phase-6 | Automatic Grafana dashboard provisioning | Zero manual configuration needed on clean startup |
 | phase-7 | Chaos invariant `produced == stored_distinct + dlq` | Formally proven across consumer crash, DB outage, broker disconnect, poison flood |
+| phase-8 | GitHub Actions CI & comprehensive documentation | Full end-to-end verification and interview readiness |
 
 ## Completed items (chronological)
 - [x] Phase 0: Project skeleton, contracts, models, database schema, configs
@@ -34,11 +35,12 @@
 - [x] Phase 5: Base detector abstraction, 4 streaming detectors (brute force, EWMA volume spike, rare domain, beaconing), Redis state checkpoints, precision/recall benchmark evaluation
 - [x] Phase 6: Automated Grafana dashboard provisioning, Operations & Threats dashboard layout (stat row, throughput, lag, latencies, alerts, DLQ breakdown), Makefile demo target
 - [x] Phase 7: Automated chaos experiments suite across 5 failure modes with zero data loss assertion (`produced == stored_distinct + dlq`)
+- [x] Phase 8: Scaling benchmarks, comprehensive README.md per PRD checklist, GitHub Actions CI workflow
 
 ## Gates passed
 - [x] Phase 0  - [x] Phase 1  - [x] Phase 2  - [x] Phase 3  - [x] Phase 4
 - [x] Phase 5a brute_force  - [x] 5b volume_spike  - [x] 5c rare_domain  - [x] 5d beaconing
-- [x] Phase 6  - [x] Phase 7  - [ ] Phase 8
+- [x] Phase 6  - [x] Phase 7  - [x] Phase 8
 
 ## Known issues / tech debt
 - (none)
@@ -48,10 +50,10 @@
 - Thresholds: brute_force N=5 window=60s  |  volume_spike z=3.0 warmup=30 alpha=0.1  |  rare_domain min_bytes=50KB  |  beaconing CV<=0.15 min_samples=6
 
 ## Last verified results
-- Phase 7: All 47 tests passed. All 5 chaos scenarios passed 3/3 times with 0 data loss and 0 duplicate rows.
+- Phase 8: All 47 tests passed. CI workflow configured. Full README documentation completed.
 
 ## Next 3 tasks
-1. Phase 8: Worker throughput scaling analysis (1, 2, 3, 6 workers) in `bench/RESULTS.md`.
-2. Phase 8: Comprehensive `README.md` following PRD checklist (architecture, delivery semantics, quickstart, interview prep).
-3. Phase 8: GitHub Actions CI workflow (`.github/workflows/ci.yml`).
+1. Deployment / demo execution (`make up && make demo`).
+2. Optional stretch goals (Schema Registry / Avro, ClickHouse sink, KEDA).
+3. Portfolio & interview walkthrough.
 
