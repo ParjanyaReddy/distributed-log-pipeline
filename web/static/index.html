@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SOC Live Console | Distributed Log Pipeline</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220%22><text y=%2226%22 font-size=%2226%22>🛡️</text></svg>">
+</head>
+<body>
+  <div class="app-container">
+    
+    <!-- Top Navigation Bar -->
+    <header class="top-header">
+      <div class="brand-section">
+        <div class="logo-badge">⚡ SOC-OPS</div>
+        <div class="title-group">
+          <h1>DISTRIBUTED LOG STREAM &amp; ANOMALY RADAR</h1>
+          <p>High-Throughput Partition-Aware Real-Time Processing Engine</p>
+        </div>
+      </div>
+      <div class="header-actions">
+        <div class="live-pill">
+          <span class="live-dot" id="live-indicator"></span>
+          <span id="stream-status-text">STREAM LIVE</span>
+        </div>
+        <button class="btn-toggle-traffic" id="btn-toggle-traffic">Pause Stream</button>
+      </div>
+    </header>
+
+    <!-- Key Metrics Ribbon -->
+    <section class="stat-ribbon">
+      <div class="stat-card">
+        <span class="stat-label">Ingestion Velocity</span>
+        <span class="stat-value" id="stat-rate">0.0</span>
+        <span class="stat-subtext">Events / Second</span>
+      </div>
+      <div class="stat-card">
+        <span class="stat-label">Events Processed</span>
+        <span class="stat-value" id="stat-consumed">0</span>
+        <span class="stat-subtext">Total Processed</span>
+      </div>
+      <div class="stat-card">
+        <span class="stat-label">Threat Alerts</span>
+        <span class="stat-value" id="stat-alerts" style="color: var(--red-crit);">0</span>
+        <span class="stat-subtext">EWMA &amp; Heuristics</span>
+      </div>
+      <div class="stat-card">
+        <span class="stat-label">Committed To DB</span>
+        <span class="stat-value" id="stat-stored" style="color: var(--green-ok);">0</span>
+        <span class="stat-subtext">Batch Idempotent Sink</span>
+      </div>
+      <div class="stat-card">
+        <span class="stat-label">Dead-Letter Queue</span>
+        <span class="stat-value" id="stat-dlq" style="color: var(--amber-warn);">0</span>
+        <span class="stat-subtext">Quarantined Records</span>
+      </div>
+    </section>
+
+    <!-- Attack Simulation Command Deck -->
+    <section class="sim-controls-panel">
+      <div class="panel-header" style="margin-bottom: 8px;">
+        <h2><span>⚡</span> ADVERSARIAL ATTACK INJECTION CONSOLE</h2>
+        <span style="font-size: 0.75rem; color: var(--text-dim);">Trigger zero-lag simulated cyber threats against the active pipeline</span>
+      </div>
+      <div class="sim-buttons-row">
+        <button class="btn-attack" data-attack="brute_force" id="btn-brute-force">
+          <span class="btn-icon">🔐</span>
+          <div class="btn-text">
+            <h4>Brute-Force Auth</h4>
+            <p>Rapid auth failures &amp; compromise</p>
+          </div>
+        </button>
+        <button class="btn-attack" data-attack="volume_spike" id="btn-volume-spike">
+          <span class="btn-icon">📈</span>
+          <div class="btn-text">
+            <h4>Volume Spike Exfil</h4>
+            <p>85MB outbound data burst (EWMA)</p>
+          </div>
+        </button>
+        <button class="btn-attack" data-attack="rare_domain" id="btn-rare-domain">
+          <span class="btn-icon">🌐</span>
+          <div class="btn-text">
+            <h4>Rare C2 Domain</h4>
+            <p>Entropy-based rare domain query</p>
+          </div>
+        </button>
+        <button class="btn-attack" data-attack="beaconing" id="btn-beaconing">
+          <span class="btn-icon">🛰️</span>
+          <div class="btn-text">
+            <h4>C2 Beaconing Pattern</h4>
+            <p>Periodic pings with CV &lt; 0.2 jitter</p>
+          </div>
+        </button>
+      </div>
+    </section>
+
+    <!-- Kafka Partition Health Monitor -->
+    <section class="partitions-panel">
+      <div class="panel-header">
+        <h2><span>🗄️</span> KAFKA PARTITION SHARDS DISTRIBUTION (TOPIC: RAW-LOGS)</h2>
+        <span style="font-size: 0.75rem; color: var(--text-dim);">Real-time shard partition hashing</span>
+      </div>
+      <div class="partition-grid">
+        <div class="partition-box">
+          <div class="part-title">Partition 0</div>
+          <div class="part-count" id="part-0">0</div>
+        </div>
+        <div class="partition-box">
+          <div class="part-title">Partition 1</div>
+          <div class="part-count" id="part-1">0</div>
+        </div>
+        <div class="partition-box">
+          <div class="part-title">Partition 2</div>
+          <div class="part-count" id="part-2">0</div>
+        </div>
+        <div class="partition-box">
+          <div class="part-title">Partition 3</div>
+          <div class="part-count" id="part-3">0</div>
+        </div>
+        <div class="partition-box">
+          <div class="part-title">Partition 4</div>
+          <div class="part-count" id="part-4">0</div>
+        </div>
+        <div class="partition-box">
+          <div class="part-title">Partition 5</div>
+          <div class="part-count" id="part-5">0</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Main Deck: Threat Radar & Live Log Terminal -->
+    <main class="main-deck">
+      
+      <!-- Threat Radar -->
+      <section class="threat-panel">
+        <div class="panel-top-bar">
+          <h2><span>🚨</span> ANOMALY DETECTION RADAR</h2>
+          <span id="alert-counter" style="font-size: 0.75rem; color: var(--text-muted); font-family: var(--font-mono);">0 ALERTS</span>
+        </div>
+        <div class="alert-feed-list" id="alert-feed">
+          <div style="color: var(--text-dim); text-align: center; padding: 40px 10px; font-size: 0.85rem;">
+            No anomalies detected yet. Stream is clean or trigger an attack simulation above.
+          </div>
+        </div>
+      </section>
+
+      <!-- Live Monospace Log Terminal -->
+      <section class="log-terminal-panel">
+        <div class="panel-top-bar">
+          <h2><span>💻</span> REAL-TIME EVENT STREAM</h2>
+          <input type="text" class="terminal-search" id="log-search" placeholder="Search client, IP, path...">
+        </div>
+        <div class="terminal-logs-window" id="terminal-logs">
+          <!-- Live events populated dynamically -->
+        </div>
+      </section>
+
+    </main>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>

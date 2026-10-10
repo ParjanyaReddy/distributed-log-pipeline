@@ -1,4 +1,4 @@
-.PHONY: up down test lint logs demo eval
+.PHONY: up down test lint logs demo eval web
 
 up:
 	docker compose up -d
@@ -21,3 +21,7 @@ demo:
 
 eval:
 	python -m bench.evaluate_detectors
+
+web:
+	python web/server.py
+

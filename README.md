@@ -158,7 +158,7 @@ Spins up Kafka (KRaft), TimescaleDB, Redis, Prometheus, Grafana, and Kafka Expor
 ```bash
 make test
 ```
-Executes all 47 unit, integration, detector, and chaos tests.
+Executes all 50 unit, integration, detector, web, and chaos tests.
 
 ### 3. Run Pipeline Demo
 ```bash
@@ -168,6 +168,17 @@ Generates live traffic with normal user profiles, injected anomalies, and malfor
 
 ### 4. View Grafana Dashboard
 Navigate to `http://localhost:3000` (User: `admin`, Password: `admin`). Dashboards are pre-provisioned under the **Operations** folder.
+
+### 5. Launch Interactive SOC Web Console
+```bash
+python web/server.py
+```
+Opens a high-performance, dark-themed SOC operations command deck at `http://localhost:8080`:
+- **Real-Time Log Ingestion Terminal:** Live monospace event feed with instant client/path filtering.
+- **Threat Radar:** Live sliding-window detection feed with severity badges (`CRITICAL`, `HIGH`).
+- **Interactive Adversarial Console:** Instant one-click simulated attack injection (`brute_force`, `volume_spike`, `rare_domain`, `beaconing`).
+- **Kafka Partition Distribution:** Real-time visual tracking of events across all 6 Kafka shards.
+- **Stream Controls:** Live traffic throttle and pause/resume switches.
 
 ---
 
