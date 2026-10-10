@@ -1,0 +1,11 @@
+apiVersion: 1
+
+providers:
+  - name: 'Log Pipeline Dashboards'
+    orgId: 1
+    folder: 'Operations'
+    type: file
+    disableDeletion: false
+    editable: true
+    options:
+      path: /var/lib/grafana/dashboards

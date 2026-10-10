@@ -1,0 +1,347 @@
+{
+  "annotations": {
+    "list": []
+  },
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 1,
+  "id": null,
+  "links": [],
+  "liveNow": true,
+  "panels": [
+    {
+      "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 0 },
+      "id": 100,
+      "title": "System Overview",
+      "type": "row"
+    },
+    {
+      "id": 1,
+      "gridPos": { "h": 4, "w": 4, "x": 0, "y": 1 },
+      "title": "Ingestion Rate",
+      "type": "stat",
+      "datasource": "Prometheus",
+      "targets": [
+        {
+          "expr": "sum(rate(events_consumed_total[1m]))",
+          "legendFormat": "events/s",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "ops/s",
+          "color": { "mode": "fixed", "fixedColor": "#2F81F7" }
+        }
+      }
+    },
+    {
+      "id": 2,
+      "gridPos": { "h": 4, "w": 5, "x": 4, "y": 1 },
+      "title": "p95 Latency",
+      "type": "stat",
+      "datasource": "Prometheus",
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.95, sum(rate(processing_latency_seconds_bucket[1m])) by (le))",
+          "legendFormat": "p95 latency",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "color": { "mode": "thresholds" },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "#3FB950", "value": null },
+              { "color": "#D29922", "value": 1.0 },
+              { "color": "#F85149", "value": 3.0 }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": 3,
+      "gridPos": { "h": 4, "w": 5, "x": 9, "y": 1 },
+      "title": "Total Consumer Lag",
+      "type": "stat",
+      "datasource": "Prometheus",
+      "targets": [
+        {
+          "expr": "sum(kafka_consumergroup_lag{consumergroup=\"processors\"})",
+          "legendFormat": "messages",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "color": { "mode": "thresholds" },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "#3FB950", "value": null },
+              { "color": "#D29922", "value": 500 },
+              { "color": "#F85149", "value": 5000 }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": 4,
+      "gridPos": { "h": 4, "w": 5, "x": 14, "y": 1 },
+      "title": "DLQ Rejection Rate",
+      "type": "stat",
+      "datasource": "Prometheus",
+      "targets": [
+        {
+          "expr": "sum(rate(dlq_total[1m]))",
+          "legendFormat": "dlq/s",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "ops/s",
+          "color": { "mode": "thresholds" },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "#3FB950", "value": null },
+              { "color": "#F85149", "value": 0.01 }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": 5,
+      "gridPos": { "h": 4, "w": 5, "x": 19, "y": 1 },
+      "title": "Alerts (Last 15m)",
+      "type": "stat",
+      "datasource": "Prometheus",
+      "targets": [
+        {
+          "expr": "sum(increase(alerts_total[15m]))",
+          "legendFormat": "alerts",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "color": { "mode": "thresholds" },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "#3FB950", "value": null },
+              { "color": "#D29922", "value": 1 },
+              { "color": "#F85149", "value": 10 }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 5 },
+      "id": 101,
+      "title": "Throughput & Consumer Lag",
+      "type": "row"
+    },
+    {
+      "id": 6,
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 6 },
+      "title": "Pipeline Throughput (ops/sec)",
+      "type": "timeseries",
+      "datasource": "Prometheus",
+      "targets": [
+        {
+          "expr": "sum(rate(events_consumed_total[1m]))",
+          "legendFormat": "Consumed",
+          "refId": "A"
+        },
+        {
+          "expr": "sum(rate(events_written_total[1m]))",
+          "legendFormat": "Written (DB)",
+          "refId": "B"
+        },
+        {
+          "expr": "sum(rate(dlq_total[1m]))",
+          "legendFormat": "DLQ Rejected",
+          "refId": "C"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "ops/s",
+          "custom": { "fillOpacity": 15, "lineWidth": 2 }
+        }
+      }
+    },
+    {
+      "id": 7,
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 6 },
+      "title": "Consumer Lag per Partition (messages)",
+      "type": "timeseries",
+      "datasource": "Prometheus",
+      "targets": [
+        {
+          "expr": "kafka_consumergroup_lag{consumergroup=\"processors\", topic=\"raw-logs\"}",
+          "legendFormat": "Partition {{partition}}",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "custom": { "lineWidth": 2 }
+        }
+      }
+    },
+    {
+      "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 14 },
+      "id": 102,
+      "title": "Latency & Error Analysis",
+      "type": "row"
+    },
+    {
+      "id": 8,
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 15 },
+      "title": "End-to-End Latency Percentiles (seconds)",
+      "type": "timeseries",
+      "datasource": "Prometheus",
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.50, sum(rate(processing_latency_seconds_bucket[1m])) by (le))",
+          "legendFormat": "p50 (median)",
+          "refId": "A"
+        },
+        {
+          "expr": "histogram_quantile(0.95, sum(rate(processing_latency_seconds_bucket[1m])) by (le))",
+          "legendFormat": "p95",
+          "refId": "B"
+        },
+        {
+          "expr": "histogram_quantile(0.99, sum(rate(processing_latency_seconds_bucket[1m])) by (le))",
+          "legendFormat": "p99",
+          "refId": "C"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "custom": { "lineWidth": 2 }
+        }
+      }
+    },
+    {
+      "id": 9,
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 15 },
+      "title": "Active Anomaly Alerts by Type",
+      "type": "timeseries",
+      "datasource": "Prometheus",
+      "targets": [
+        {
+          "expr": "sum by (type) (rate(alerts_total[1m]))",
+          "legendFormat": "{{type}}",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "ops/s",
+          "custom": { "fillOpacity": 30, "stacking": { "mode": "normal" } }
+        }
+      }
+    },
+    {
+      "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 23 },
+      "id": 103,
+      "title": "Dead-Letter & Pipeline Health",
+      "type": "row"
+    },
+    {
+      "id": 10,
+      "gridPos": { "h": 7, "w": 8, "x": 0, "y": 24 },
+      "title": "DLQ Rejections by Reason",
+      "type": "timeseries",
+      "datasource": "Prometheus",
+      "targets": [
+        {
+          "expr": "sum by (reason) (rate(dlq_total[1m]))",
+          "legendFormat": "{{reason}}",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "ops/s",
+          "custom": { "lineWidth": 2 }
+        }
+      }
+    },
+    {
+      "id": 11,
+      "gridPos": { "h": 7, "w": 8, "x": 8, "y": 24 },
+      "title": "Detector Errors",
+      "type": "timeseries",
+      "datasource": "Prometheus",
+      "targets": [
+        {
+          "expr": "sum by (detector) (rate(detector_errors_total[1m]))",
+          "legendFormat": "{{detector}}",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "ops/s",
+          "custom": { "lineWidth": 2 }
+        }
+      }
+    },
+    {
+      "id": 12,
+      "gridPos": { "h": 7, "w": 8, "x": 16, "y": 24 },
+      "title": "Late Events Dropped (>30s)",
+      "type": "timeseries",
+      "datasource": "Prometheus",
+      "targets": [
+        {
+          "expr": "rate(late_events_total[1m])",
+          "legendFormat": "Late events",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "ops/s",
+          "custom": { "lineWidth": 2 }
+        }
+      }
+    }
+  ],
+  "refresh": "5s",
+  "schemaVersion": 38,
+  "style": "dark",
+  "tags": ["distributed-systems", "kafka", "anomaly-detection"],
+  "time": {
+    "from": "now-15m",
+    "to": "now"
+  },
+  "timepicker": {
+    "refresh_intervals": ["5s", "10s", "30s", "1m"]
+  },
+  "timezone": "utc",
+  "title": "Distributed Log Pipeline - Operations & Threats",
+  "uid": "log-pipeline-main",
+  "version": 1
+}
