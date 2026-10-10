@@ -3,9 +3,9 @@
 > Paste this file at the start of each new AI chat, along with `Rules.md`. Don't paste the whole codebase.
 
 ## Current status
-- **Phase:** 2 (Producer)
-- **Current task:** Build the load generator with behavior profiles and anomaly injection.
-- **Current working files:** producers/profiles.py, producers/generator.py
+- **Phase:** 3 (Consumer core)
+- **Current task:** Build validation -> DLQ path, consumer loop with manual offset tracking, graceful shutdown, rebalance callbacks.
+- **Current working files:** processor/validate.py, processor/dlq.py, processor/main.py
 - **Blocked on:** nothing
 
 ## Decisions log (don't re-debate without cause)
@@ -17,12 +17,15 @@
 | start | At-least-once + idempotent sink | Exactly-once is a non-goal |
 | start | Alerts deduped via deterministic `dedupe_key` | Replays must not duplicate alerts |
 | start | Z-score uses previous mean/std | Avoid understated z from post-update mean |
+| phase-2 | Deterministic seeded PRNG per client | Reproducible evaluation & load generation |
 
 ## Completed items (chronological)
-- [ ] (none)
+- [x] Phase 0: Project skeleton, contracts, models, database schema, configs
+- [x] Phase 1: Docker Compose infrastructure, Kafka topic definitions, Prometheus/Grafana configs
+- [x] Phase 2: User behavior profiles (office worker, developer, downloader), rate-controlled generator, labeled anomaly injectors, ground-truth labels.jsonl writer
 
 ## Gates passed
-- [x] Phase 0  - [x] Phase 1  - [ ] Phase 2  - [ ] Phase 3  - [ ] Phase 4
+- [x] Phase 0  - [x] Phase 1  - [x] Phase 2  - [ ] Phase 3  - [ ] Phase 4
 - [ ] Phase 5a brute_force  - [ ] 5b volume_spike  - [ ] 5c rare_domain  - [ ] 5d beaconing
 - [ ] Phase 6  - [ ] Phase 7  - [ ] Phase 8
 
@@ -34,9 +37,10 @@
 - Thresholds: brute_force N=? window=?  |  z=3.0 warmup=30  |  beacon CV<? min samples=?
 
 ## Last verified results
-- Throughput: ?   p95 latency: ?   Precision/recall: ?
+- Phase 2: All 13 tests passed (schema conformance, PRNG reproducibility, anomaly injection, partition stickiness, rate delivery).
 
 ## Next 3 tasks
-1. ...
-2. ...
-3. ...
+1. Phase 3: Implement validation logic and DLQ message wrapping (`processor/validate.py`, `processor/dlq.py`).
+2. Phase 3: Implement consumer loop with manual offset management and graceful shutdown (`processor/main.py`).
+3. Phase 3: Consumer rebalance listener and unit/integration tests.
+
