@@ -76,7 +76,7 @@ def test_consumer_gate_10k_valid_and_100_malformed():
     processor.shutdown()
 
     # Verify sink and DLQ counts
-    assert len(processor.in_memory_sink) == valid_count
+    assert len(processor.sink.in_memory_events) == valid_count
     assert len(dlq.in_memory_records) == malformed_count
 
     # Verify that all consumed offsets across all 6 partitions are committed

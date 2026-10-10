@@ -11,18 +11,20 @@ from prometheus_client import start_http_server
 from common.config import (
     KAFKA_BROKERS,
     TOPIC_RAW_LOGS,
+    DB_URI,
     MAX_BATCH_SIZE,
     BATCH_TIMEOUT_SEC
 )
 from common.logging import get_logger
 from common.metrics import (
     EVENTS_CONSUMED,
-    EVENTS_WRITTEN,
     PROCESSING_LATENCY_SECONDS
 )
 from common.models import Event, ValidationFailure
 from processor.validate import validate_event_payload
+from processor.enrich import enrich_event
 from processor.dlq import DeadLetterQueue
+from processor.sink import DatabaseSink
 
 logger = get_logger("processor.main")
 
@@ -33,10 +35,11 @@ class LogProcessor:
         bootstrap_servers: str = KAFKA_BROKERS,
         group_id: str = "processors",
         input_topic: str = TOPIC_RAW_LOGS,
+        db_uri: str = DB_URI,
         max_batch_size: int = MAX_BATCH_SIZE,
         batch_timeout_sec: float = BATCH_TIMEOUT_SEC,
         dlq: Optional[DeadLetterQueue] = None,
-        sink_fn: Optional[Callable[[List[Event]], None]] = None,
+        sink: Optional[DatabaseSink] = None,
         dry_run: bool = False
     ):
         self.input_topic = input_topic
@@ -44,11 +47,11 @@ class LogProcessor:
         self.batch_timeout_sec = batch_timeout_sec
         self.dry_run = dry_run
         self.dlq = dlq or DeadLetterQueue(bootstrap_servers=bootstrap_servers, dry_run=dry_run)
-        self.sink_fn = sink_fn or self._default_in_memory_sink
+        self.sink = sink or DatabaseSink(db_uri=db_uri, page_size=max_batch_size, dry_run=dry_run)
 
         self.running = True
         self.batch: List[Event] = []
-        self.in_memory_sink: List[Event] = []
+        self.alerts_batch: List[Dict[str, Any]] = []
         self.batch_start_time = time.time()
 
         # Track the next offset to commit per partition: { (topic, partition): offset + 1 }
@@ -71,18 +74,13 @@ class LogProcessor:
                 logger.error(f"Failed to create Kafka consumer: {e}")
                 raise
 
-    def _default_in_memory_sink(self, events: List[Event]) -> None:
-        """Default sink in Phase 3 before Phase 4 TimescaleDB integration."""
-        self.in_memory_sink.extend(events)
-        EVENTS_WRITTEN.inc(len(events))
-
     def on_assign(self, consumer: Consumer, partitions: List[TopicPartition]) -> None:
         logger.info(f"Partitions assigned: {[f'{p.topic}-{p.partition}' for p in partitions]}")
         consumer.assign(partitions)
 
     def on_revoke(self, consumer: Consumer, partitions: List[TopicPartition]) -> None:
         logger.info(f"Partitions revoked: {[f'{p.topic}-{p.partition}' for p in partitions]}")
-        # Flush pending work before releasing partition ownership
+        # Rule R-6: Flush pending work before releasing partition ownership
         self.flush_batch(force=True)
         # Clear partition state for revoked partitions
         revoked_keys = {(p.topic, p.partition) for p in partitions}
@@ -93,25 +91,37 @@ class LogProcessor:
         """Tracks the highest offset + 1 for committing."""
         self.pending_offsets[(topic, partition)] = offset + 1
 
+    def _keep_alive(self) -> None:
+        """Keeps Kafka consumer group membership alive during long operations/retries."""
+        if self.consumer is not None:
+            self.consumer.poll(0)
+
     def flush_batch(self, force: bool = False) -> None:
-        """Flushes buffered events strictly according to the processing contract."""
+        """Flushes buffered events strictly according to Architecture.md Section 6."""
         age = time.time() - self.batch_start_time
         if not force and len(self.batch) < self.max_batch_size and age < self.batch_timeout_sec:
             return
 
-        if not self.batch and not self.pending_offsets:
+        if not self.batch and not self.alerts_batch and not self.pending_offsets:
             self.batch_start_time = time.time()
             return
 
-        # Step 1: Ensure all DLQ messages are acknowledged
+        # Step 1: Ensure all DLQ messages are acknowledged before DB and offset commit
         self.dlq.flush(timeout=5.0)
 
-        # Step 2: Write batch to storage sink
-        if self.batch:
-            self.sink_fn(self.batch)
+        # Step 2: One DB transaction for events + alerts (both ON CONFLICT DO NOTHING)
+        if self.batch or self.alerts_batch:
+            self.sink.write_batch(
+                events=self.batch,
+                alerts=self.alerts_batch,
+                keep_alive_fn=self._keep_alive
+            )
             self.batch.clear()
+            self.alerts_batch.clear()
 
-        # Step 3: Explicitly commit offsets (including offsets of DLQ messages)
+        # Step 3: Publish alerts to topic (will be used in Phase 5)
+
+        # Step 4: Explicitly commit offsets (including offsets of DLQ messages)
         if self.consumer is not None and self.pending_offsets:
             topic_partitions = [
                 TopicPartition(topic, partition, next_offset)
@@ -131,10 +141,14 @@ class LogProcessor:
         self.batch_start_time = time.time()
 
     def process_message(self, raw_payload: bytes, topic: str, partition: int, offset: int) -> None:
-        """Validates and processes a single consumed message."""
+        """Validates, enriches, and processes a single consumed message."""
         EVENTS_CONSUMED.inc()
         try:
+            # Validate payload
             event = validate_event_payload(raw_payload)
+            # Enrich payload
+            event = enrich_event(event)
+
             # Record processing latency from event timestamp
             latency = (datetime.now(timezone.utc) - event.ts).total_seconds()
             if latency >= 0:
@@ -151,7 +165,7 @@ class LogProcessor:
                 details=vf.details
             )
 
-        # R-5: Always advance offset for processed message (whether valid or sent to DLQ)
+        # Rule R-5: Always advance offset for processed message (whether valid or sent to DLQ)
         self.track_offset(topic, partition, offset)
         self.flush_batch()
 
@@ -198,6 +212,8 @@ class LogProcessor:
             if self.consumer is not None:
                 self.consumer.close()
                 logger.info("Kafka consumer closed.")
+            if self.sink is not None:
+                self.sink.close()
 
 
 def main():
@@ -210,7 +226,7 @@ def main():
         start_http_server(args.metrics_port)
         logger.info(f"Prometheus metrics exposed on port {args.metrics_port}")
     except Exception as e:
-        logger.warn(f"Could not start Prometheus HTTP server: {e}")
+        logger.warning(f"Could not start Prometheus HTTP server: {e}")
 
     processor = LogProcessor()
 
