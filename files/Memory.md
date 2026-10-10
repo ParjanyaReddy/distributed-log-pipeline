@@ -3,9 +3,9 @@
 > Paste this file at the start of each new AI chat, along with `Rules.md`. Don't paste the whole codebase.
 
 ## Current status
-- **Phase:** 0 (Skeleton & contracts)
-- **Current task:** Create repo layout, pin requirements, write `common/models.py`
-- **Current working files:** (none yet)
+- **Phase:** 2 (Producer)
+- **Current task:** Build the load generator with behavior profiles and anomaly injection.
+- **Current working files:** producers/profiles.py, producers/generator.py
 - **Blocked on:** nothing
 
 ## Decisions log (don't re-debate without cause)
@@ -22,7 +22,7 @@
 - [ ] (none)
 
 ## Gates passed
-- [ ] Phase 0  - [ ] Phase 1  - [ ] Phase 2  - [ ] Phase 3  - [ ] Phase 4
+- [x] Phase 0  - [x] Phase 1  - [ ] Phase 2  - [ ] Phase 3  - [ ] Phase 4
 - [ ] Phase 5a brute_force  - [ ] 5b volume_spike  - [ ] 5c rare_domain  - [ ] 5d beaconing
 - [ ] Phase 6  - [ ] Phase 7  - [ ] Phase 8
 
