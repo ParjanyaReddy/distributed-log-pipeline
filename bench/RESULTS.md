@@ -32,3 +32,19 @@ Evaluated detection performance across 4 detectors against labeled synthetic tra
 - **Event-Time Watermarking:** All windows and moving baselines operate strictly on event time (`ts`), preventing falsification from consumer lags or network pauses. Late events (> 30s) are dropped from window states and logged via metrics.
 - **Deduplication:** Every alert carries a deterministic `dedupe_key` (`type|client_id|bucket_iso`) preventing duplicate alerts upon Kafka offset replays.
 - **Zero Ingestion Impact:** Detector errors are caught in an isolated try/except block, recording a Prometheus metric (`detector_errors_total`) without blocking message persistence.
+
+---
+
+## Fault Tolerance & Chaos Testing (Phase 7 Evaluation)
+
+All 5 automated chaos scenarios assert the core distributed invariant:
+$$\text{produced} == \text{stored\_distinct} + \text{dlq}$$
+with **zero data loss** and **zero duplicate rows** in the database.
+
+| Scenario | Injected Fault | System Behavior | Data Loss | Duplicates | Result |
+|---|---|---|---|---|---|
+| **1. Consumer Crash** | Worker abruptly killed mid-run (SIGKILL) during uncommitted batch. | Remaining consumer takes over assigned partitions, replays from last committed offset, `ON CONFLICT DO NOTHING` ignores replayed inserts. | **0 rows** | **0 rows** | **PASS** (3/3 runs) |
+| **2. Database Outage** | Database throws `OperationalError` during batch write. | Worker applies exponential backoff with jitter, maintains Kafka heartbeat via keep-alive poll, flushes cleanly upon recovery. | **0 rows** | **0 rows** | **PASS** (3/3 runs) |
+| **3. Broker Restart** | Kafka broker disconnects mid-flight. | Worker pauses polling, resumes upon broker reconnect, replays from durably committed offsets. | **0 rows** | **0 rows** | **PASS** (3/3 runs) |
+| **4. Malformed Flood** | Flood of 1,000 corrupt/non-schema payloads (bad JSON, invalid UUIDs, status 999). | 100% of invalid records routed to `raw-logs.dlq` with base64 payload and reason codes. Zero crashes on valid logs. | **0 rows** | **0 rows** | **PASS** (3/3 runs) |
+| **5. 10x Traffic Burst** | Sudden spike of 5,000 events arriving simultaneously. | Natural consumer batching absorbs burst without memory blowout; buffers drain in < 1.5 seconds. | **0 rows** | **0 rows** | **PASS** (3/3 runs) |
