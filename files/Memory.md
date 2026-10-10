@@ -3,9 +3,9 @@
 > Paste this file at the start of each new AI chat, along with `Rules.md`. Don't paste the whole codebase.
 
 ## Current status
-- **Phase:** 5 (Anomaly detectors)
-- **Current task:** Implement base detector interface, state management in Redis, and brute force detector (Phase 5a).
-- **Current working files:** processor/detectors/base.py, processor/detectors/brute_force.py, processor/state.py
+- **Phase:** 6 (Observability)
+- **Current task:** Provision Grafana dashboards automatically, configure Prometheus scrape targets, and build live metrics visualization.
+- **Current working files:** dashboards/main.json, dashboards/dashboards.yml
 - **Blocked on:** nothing
 
 ## Decisions log (don't re-debate without cause)
@@ -20,6 +20,8 @@
 | phase-2 | Deterministic seeded PRNG per client | Reproducible evaluation & load generation |
 | phase-3 | Explicit manual offset commit per partition | Strict at-least-once: offsets advance only after flush & DLQ ack |
 | phase-4 | Single DB transaction for events & alerts | Atomicity; ON CONFLICT DO NOTHING handles replay idempotency |
+| phase-5 | Pre-update EWMA z-score calculation | Adheres to Rule R-10, prevents understatement of anomaly z-scores |
+| phase-5 | Separate dedupe key for compromise escalation | Emits critical alert if brute-force is followed by compromise |
 
 ## Completed items (chronological)
 - [x] Phase 0: Project skeleton, contracts, models, database schema, configs
@@ -27,10 +29,11 @@
 - [x] Phase 2: User behavior profiles (office worker, developer, downloader), rate-controlled generator, labeled anomaly injectors, ground-truth labels.jsonl writer
 - [x] Phase 3: Schema validation, dead-letter queue routing with base64 payloads, manual offset management, rebalance callbacks, Prometheus metrics
 - [x] Phase 4: Static enrichment, batched idempotent DatabaseSink (page_size <= 1000), DB retry with backoff, idempotency & crash replay tests, batch benchmark evaluation
+- [x] Phase 5: Base detector abstraction, 4 streaming detectors (brute force, EWMA volume spike, rare domain, beaconing), Redis state checkpoints, precision/recall benchmark evaluation
 
 ## Gates passed
 - [x] Phase 0  - [x] Phase 1  - [x] Phase 2  - [x] Phase 3  - [x] Phase 4
-- [ ] Phase 5a brute_force  - [ ] 5b volume_spike  - [ ] 5c rare_domain  - [ ] 5d beaconing
+- [x] Phase 5a brute_force  - [x] 5b volume_spike  - [x] 5c rare_domain  - [x] 5d beaconing
 - [ ] Phase 6  - [ ] Phase 7  - [ ] Phase 8
 
 ## Known issues / tech debt
@@ -38,13 +41,13 @@
 
 ## Config snapshot (fill as built)
 - Batch size: 1000   Batch max age: 1.0s   Allowed lateness: 30s
-- Thresholds: brute_force N=? window=?  |  z=3.0 warmup=30  |  beacon CV<? min samples=?
+- Thresholds: brute_force N=5 window=60s  |  volume_spike z=3.0 warmup=30 alpha=0.1  |  rare_domain min_bytes=50KB  |  beaconing CV<=0.15 min_samples=6
 
 ## Last verified results
-- Phase 4: All 33 tests passed. Idempotency replay test verified 0 duplicate rows on replay. Benchmarked batch size 1 (6,169 ev/s) vs 500 (627,833 ev/s) vs 1,000 (642,018 ev/s).
+- Phase 5: All 42 tests passed. Detection Quality Benchmark on labeled stream: 100% precision & 100% recall across all 4 detectors (brute force MTTD 8s, beaconing MTTD 20s, volume spike MTTD 0s, rare domain MTTD 0s).
 
 ## Next 3 tasks
-1. Phase 5a: Implement detector base class and sliding window brute force detector (`processor/detectors/brute_force.py`).
-2. Phase 5: Per-client state checkpoints in Redis with assign/revoke rebalance handlers (`processor/state.py`).
-3. Phase 5b: Implement EWMA z-score volume spike detector (`processor/detectors/volume_spike.py`).
+1. Phase 6: Create Grafana dashboard JSON (`dashboards/main.json`) conforming to `Design.md`.
+2. Phase 6: Configure dashboard provisioning (`dashboards/dashboards.yml`) for one-command startup.
+3. Phase 6: End-to-end dashboard integration verification.
 

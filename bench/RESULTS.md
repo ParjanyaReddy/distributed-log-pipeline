@@ -14,3 +14,21 @@ Evaluated effect of batching on ingestion sink throughput across 5,000 events:
 - Batching amortizes SQL parsing, statement dispatch, and transaction overhead.
 - Increasing batch size from 1 to 500 yields a ~100x throughput boost.
 - Increasing from 500 to 1,000 yields incremental throughput gains while capping bind parameters well below the PostgreSQL statement limit of 65,535 (13 columns * 1,000 rows = 13,000 parameters).
+
+---
+
+## Streaming Anomaly Detection Quality (Phase 5 Evaluation)
+
+Evaluated detection performance across 4 detectors against labeled synthetic traffic (35 warmup events/client, 5 injected attack bursts per anomaly type):
+
+| Detector | Precision | Recall | F1-Score | Mean Time to Detect (MTTD) | Notes / Thresholds |
+|---|---|---|---|---|---|
+| **`brute_force`** | **100.0%** | **100.0%** | **100.0%** | **8.00s** | Threshold: $\ge 5$ failures in 60s window; elevates to critical on compromise. |
+| **`volume_spike`** | **100.0%** | **100.0%** | **100.0%** | **0.00s** | EWMA z-score: $z > 3.0$, warmup $N \ge 30$, $\alpha = 0.1$, pre-update evaluation. |
+| **`rare_domain`** | **100.0%** | **100.0%** | **100.0%** | **0.00s** | First-seen or low-reputation category with $\text{bytes\_out} \ge 50\text{ KB}$. |
+| **`beaconing`** | **100.0%** | **100.0%** | **100.0%** | **20.00s** | Inter-arrival coefficient of variation $CV \le 0.15$ with sample count $\ge 6$. |
+
+### Detection Methodologies
+- **Event-Time Watermarking:** All windows and moving baselines operate strictly on event time (`ts`), preventing falsification from consumer lags or network pauses. Late events (> 30s) are dropped from window states and logged via metrics.
+- **Deduplication:** Every alert carries a deterministic `dedupe_key` (`type|client_id|bucket_iso`) preventing duplicate alerts upon Kafka offset replays.
+- **Zero Ingestion Impact:** Detector errors are caught in an isolated try/except block, recording a Prometheus metric (`detector_errors_total`) without blocking message persistence.

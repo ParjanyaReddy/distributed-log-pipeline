@@ -25,6 +25,7 @@ from processor.validate import validate_event_payload
 from processor.enrich import enrich_event
 from processor.dlq import DeadLetterQueue
 from processor.sink import DatabaseSink
+from processor.detectors.engine import AnomalyEngine
 
 logger = get_logger("processor.main")
 
@@ -40,6 +41,7 @@ class LogProcessor:
         batch_timeout_sec: float = BATCH_TIMEOUT_SEC,
         dlq: Optional[DeadLetterQueue] = None,
         sink: Optional[DatabaseSink] = None,
+        anomaly_engine: Optional[AnomalyEngine] = None,
         dry_run: bool = False
     ):
         self.input_topic = input_topic
@@ -48,6 +50,7 @@ class LogProcessor:
         self.dry_run = dry_run
         self.dlq = dlq or DeadLetterQueue(bootstrap_servers=bootstrap_servers, dry_run=dry_run)
         self.sink = sink or DatabaseSink(db_uri=db_uri, page_size=max_batch_size, dry_run=dry_run)
+        self.engine = anomaly_engine or AnomalyEngine()
 
         self.running = True
         self.batch: List[Event] = []
@@ -119,9 +122,7 @@ class LogProcessor:
             self.batch.clear()
             self.alerts_batch.clear()
 
-        # Step 3: Publish alerts to topic (will be used in Phase 5)
-
-        # Step 4: Explicitly commit offsets (including offsets of DLQ messages)
+        # Step 3: Explicitly commit offsets (including offsets of DLQ messages)
         if self.consumer is not None and self.pending_offsets:
             topic_partitions = [
                 TopicPartition(topic, partition, next_offset)
@@ -141,13 +142,18 @@ class LogProcessor:
         self.batch_start_time = time.time()
 
     def process_message(self, raw_payload: bytes, topic: str, partition: int, offset: int) -> None:
-        """Validates, enriches, and processes a single consumed message."""
+        """Validates, enriches, detects anomalies, and processes a single message."""
         EVENTS_CONSUMED.inc()
         try:
-            # Validate payload
+            # Step 1: Validate payload
             event = validate_event_payload(raw_payload)
-            # Enrich payload
+            # Step 2: Enrich payload
             event = enrich_event(event)
+
+            # Step 3: Run anomaly detection
+            detected_alerts = self.engine.evaluate_event(event)
+            if detected_alerts:
+                self.alerts_batch.extend(detected_alerts)
 
             # Record processing latency from event timestamp
             latency = (datetime.now(timezone.utc) - event.ts).total_seconds()
