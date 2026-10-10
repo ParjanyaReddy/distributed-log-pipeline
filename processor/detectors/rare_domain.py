@@ -1,5 +1,5 @@
-from datetime import datetime, timezone
-from typing import List, Dict, Any, Set
+from datetime import UTC, datetime
+from typing import Any
 
 from common.models import Event
 from processor.detectors.base import BaseDetector
@@ -19,10 +19,10 @@ class RareDomainDetector(BaseDetector):
         self.bucket_seconds = bucket_seconds
 
         # Per-client seen domains: { client_id: set(domains) }
-        self.client_domains: Dict[str, Set[str]] = {}
-        self.alerted_buckets: Set[str] = set()
+        self.client_domains: dict[str, set[str]] = {}
+        self.alerted_buckets: set[str] = set()
 
-    def process_event(self, event: Event) -> List[Dict[str, Any]]:
+    def process_event(self, event: Event) -> list[dict[str, Any]]:
         if self.is_late(event.ts):
             return []
 
@@ -40,7 +40,7 @@ class RareDomainDetector(BaseDetector):
 
         if (is_first_seen or is_suspicious_category) and elevated_bytes:
             bucket_timestamp = int(event.ts.timestamp() // self.bucket_seconds) * int(self.bucket_seconds)
-            bucket_iso = datetime.fromtimestamp(bucket_timestamp, tz=timezone.utc).isoformat()
+            bucket_iso = datetime.fromtimestamp(bucket_timestamp, tz=UTC).isoformat()
             dedupe_key = f"rare_domain|{client_id}|{event.domain}|{bucket_iso}"
 
             if dedupe_key not in self.alerted_buckets:
@@ -63,13 +63,13 @@ class RareDomainDetector(BaseDetector):
 
         return alerts
 
-    def get_state(self) -> Dict[str, Any]:
+    def get_state(self) -> dict[str, Any]:
         return {
             client_id: list(domains)
             for client_id, domains in self.client_domains.items()
         }
 
-    def set_state(self, state_dict: Dict[str, Any]) -> None:
+    def set_state(self, state_dict: dict[str, Any]) -> None:
         self.client_domains.clear()
         for client_id, domains in state_dict.items():
             self.client_domains[client_id] = set(domains)

@@ -1,9 +1,9 @@
 import ipaddress
-from typing import Optional, Dict
+
 from common.models import Event
 
 # Static lookup mapping common domains to curated threat/business categories
-DOMAIN_CATEGORY_MAP: Dict[str, str] = {
+DOMAIN_CATEGORY_MAP: dict[str, str] = {
     # SaaS and Productivity
     "mail.google.com": "email",
     "docs.google.com": "productivity",

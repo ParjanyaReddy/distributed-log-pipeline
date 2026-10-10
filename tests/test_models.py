@@ -1,14 +1,16 @@
-import pytest
-from datetime import datetime, timezone, timedelta
+from datetime import UTC, datetime, timedelta
 from uuid import uuid4
+
+import pytest
 from pydantic import ValidationError
-from common.models import Event, ReasonCode
+
+from common.models import Event
 
 
 def make_valid_event_dict():
     return {
         "event_id": str(uuid4()),
-        "ts": datetime.now(timezone.utc).isoformat(),
+        "ts": datetime.now(UTC).isoformat(),
         "client_id": "client-0001",
         "src_ip": "10.0.1.25",
         "method": "GET",
@@ -55,6 +57,6 @@ def test_invalid_action():
 
 def test_future_timestamp():
     data = make_valid_event_dict()
-    data["ts"] = (datetime.now(timezone.utc) + timedelta(days=2)).isoformat()
+    data["ts"] = (datetime.now(UTC) + timedelta(days=2)).isoformat()
     with pytest.raises(ValidationError):
         Event(**data)

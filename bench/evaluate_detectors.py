@@ -1,25 +1,26 @@
 import random
-from datetime import datetime, timezone, timedelta
-from typing import List, Dict, Any
+from datetime import UTC, datetime, timedelta
+from typing import Any
+
 from common.models import Event
-from producers.profiles import create_population
-from producers.anomalies import (
-    inject_brute_force,
-    inject_volume_spike,
-    inject_rare_domain,
-    inject_beaconing
-)
 from processor.detectors.engine import AnomalyEngine
+from producers.anomalies import (
+    inject_beaconing,
+    inject_brute_force,
+    inject_rare_domain,
+    inject_volume_spike,
+)
+from producers.profiles import create_population
 
 
 def evaluate_detection_quality():
     engine = AnomalyEngine()
     clients = create_population(num_clients=50, seed=42)
-    base_ts = datetime(2026, 6, 1, 12, 0, 0, tzinfo=timezone.utc)
+    base_ts = datetime(2026, 6, 1, 12, 0, 0, tzinfo=UTC)
     rng = random.Random(42)
 
     # 1. Warm up baselines with regular traffic
-    events_stream: List[tuple[datetime, Event]] = []
+    events_stream: list[tuple[datetime, Event]] = []
     current_time = base_ts
 
     for _ in range(40):
@@ -82,13 +83,13 @@ def evaluate_detection_quality():
     events_stream.sort(key=lambda x: x[0])
 
     # 3. Process events through the detection engine
-    all_alerts: List[Dict[str, Any]] = []
+    all_alerts: list[dict[str, Any]] = []
     for _, event in events_stream:
         alerts = engine.evaluate_event(event)
         all_alerts.extend(alerts)
 
     # 4. Evaluate Metrics per detector type
-    stats: Dict[str, Dict[str, Any]] = {
+    stats: dict[str, dict[str, Any]] = {
         "brute_force": {"tp": 0, "fp": 0, "fn": 0, "detection_delays": []},
         "volume_spike": {"tp": 0, "fp": 0, "fn": 0, "detection_delays": []},
         "rare_domain": {"tp": 0, "fp": 0, "fn": 0, "detection_delays": []},
@@ -126,9 +127,9 @@ def evaluate_detection_quality():
 
         # Check if this alert was triggered by an injected attack on this client
         matched = any(
-            l["client_id"] == cid and
-            datetime.fromisoformat(l["start_ts"]) - timedelta(seconds=5) <= alert_ts <= datetime.fromisoformat(l["end_ts"]) + timedelta(seconds=60)
-            for l in ground_truth
+            lbl["client_id"] == cid and
+            datetime.fromisoformat(lbl["start_ts"]) - timedelta(seconds=5) <= alert_ts <= datetime.fromisoformat(lbl["end_ts"]) + timedelta(seconds=60)
+            for lbl in ground_truth
         )
         if not matched:
             stats[atype]["fp"] += 1

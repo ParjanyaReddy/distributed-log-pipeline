@@ -1,6 +1,6 @@
-import pytest
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from uuid import uuid4
+
 from common.models import Event
 from processor.sink import DatabaseSink
 
@@ -8,7 +8,7 @@ from processor.sink import DatabaseSink
 def make_test_event(i: int = 1) -> Event:
     return Event(
         event_id=uuid4(),
-        ts=datetime.now(timezone.utc),
+        ts=datetime.now(UTC),
         client_id=f"client-{i:04d}",
         src_ip="10.0.0.1",
         method="GET",
@@ -36,7 +36,7 @@ def test_sink_idempotency_replay():
     events = [make_test_event(i) for i in range(100)]
     alerts = [
         {
-            "ts": datetime.now(timezone.utc),
+            "ts": datetime.now(UTC),
             "type": "brute_force",
             "severity": "high",
             "client_id": "client-0001",

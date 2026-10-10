@@ -1,0 +1,12 @@
+[tool.ruff]
+line-length = 120
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B"]
+ignore = [
+    "E501",  # Line too long
+    "B007",  # Loop control variable not used within loop body (common in test repetitions)
+    "B008",  # Do not perform function call in argument defaults
+    "B905",  # zip() without an explicit strict= parameter
+]

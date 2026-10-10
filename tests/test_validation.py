@@ -1,7 +1,8 @@
 import json
-import pytest
-from datetime import datetime, timezone, timedelta
+from datetime import UTC, datetime, timedelta
 from uuid import uuid4
+
+import pytest
 
 from common.models import ReasonCode, ValidationFailure
 from processor.validate import validate_event_payload
@@ -10,7 +11,7 @@ from processor.validate import validate_event_payload
 def get_base_valid_dict():
     return {
         "event_id": str(uuid4()),
-        "ts": datetime.now(timezone.utc).isoformat(),
+        "ts": datetime.now(UTC).isoformat(),
         "client_id": "client-0042",
         "src_ip": "192.168.1.100",
         "method": "GET",
@@ -85,7 +86,7 @@ def test_naive_timestamp():
 
 def test_future_timestamp():
     data = get_base_valid_dict()
-    far_future = datetime.now(timezone.utc) + timedelta(days=5)
+    far_future = datetime.now(UTC) + timedelta(days=5)
     data["ts"] = far_future.isoformat()
     payload = json.dumps(data).encode("utf-8")
     with pytest.raises(ValidationFailure) as exc_info:

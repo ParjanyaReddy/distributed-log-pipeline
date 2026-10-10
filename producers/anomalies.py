@@ -1,7 +1,7 @@
-import json
-from datetime import datetime, timezone, timedelta
-from typing import List, Dict, Any, Tuple
+from datetime import UTC, datetime, timedelta
+from typing import Any
 from uuid import uuid4
+
 from producers.profiles import SimulatedClient
 
 
@@ -10,7 +10,7 @@ def inject_brute_force(
     start_ts: datetime,
     num_failures: int = 12,
     interval_seconds: float = 2.0
-) -> Tuple[List[Dict[str, Any]], Dict[str, Any]]:
+) -> tuple[list[dict[str, Any]], dict[str, Any]]:
     """Injects a brute-force authentication sequence followed by a success."""
     events = []
     current_ts = start_ts
@@ -73,7 +73,7 @@ def inject_volume_spike(
     client: SimulatedClient,
     ts: datetime,
     bytes_out: int = 75_000_000
-) -> Tuple[Dict[str, Any], Dict[str, Any]]:
+) -> tuple[dict[str, Any], dict[str, Any]]:
     """Injects an enormous outbound data transfer (data exfiltration)."""
     domain = "mega-cloud-drop.io"
     event = {
@@ -109,7 +109,7 @@ def inject_rare_domain(
     client: SimulatedClient,
     ts: datetime,
     domain: str = "super-sketchy-pastebin.ru"
-) -> Tuple[Dict[str, Any], Dict[str, Any]]:
+) -> tuple[dict[str, Any], dict[str, Any]]:
     """Injects access to a suspicious / low-reputation or rare domain with large payload."""
     event = {
         "event_id": str(uuid4()),
@@ -146,7 +146,7 @@ def inject_beaconing(
     count: int = 15,
     interval_seconds: float = 5.0,
     domain: str = "c2-command-callback.net"
-) -> Tuple[List[Dict[str, Any]], Dict[str, Any]]:
+) -> tuple[list[dict[str, Any]], dict[str, Any]]:
     """Injects periodic heartbeat requests with near-zero jitter to simulate C2 beaconing."""
     events = []
     current_ts = start_ts
@@ -191,7 +191,7 @@ def make_malformed_event(malform_type: str = "invalid_json") -> Any:
     elif malform_type == "status_999":
         return {
             "event_id": str(uuid4()),
-            "ts": datetime.now(timezone.utc).isoformat(),
+            "ts": datetime.now(UTC).isoformat(),
             "client_id": "malformed-client",
             "src_ip": "1.2.3.4",
             "method": "GET",
@@ -208,7 +208,7 @@ def make_malformed_event(malform_type: str = "invalid_json") -> Any:
     elif malform_type == "negative_bytes":
         return {
             "event_id": str(uuid4()),
-            "ts": datetime.now(timezone.utc).isoformat(),
+            "ts": datetime.now(UTC).isoformat(),
             "client_id": "malformed-client",
             "src_ip": "1.2.3.4",
             "method": "GET",

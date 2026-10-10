@@ -1,8 +1,12 @@
-import pytest
-from datetime import datetime, timezone
+from datetime import UTC, datetime
+
 from common.models import Event
-from producers.profiles import create_population, OFFICE_WORKER_PROFILE, DEVELOPER_PROFILE, HEAVY_DOWNLOADER_PROFILE
-from producers.anomalies import inject_brute_force, inject_volume_spike, inject_rare_domain, inject_beaconing
+from producers.anomalies import (
+    inject_beaconing,
+    inject_brute_force,
+    inject_volume_spike,
+)
+from producers.profiles import create_population
 
 
 def test_population_size_and_uniqueness():
@@ -36,15 +40,15 @@ def test_reproducibility_with_seed():
         assert ca.src_ip == cb.src_ip
         assert ca.profile.name == cb.profile.name
         # Seeded PRNG should generate identical sequences
-        ev_a = ca.generate_event(datetime(2026, 1, 1, tzinfo=timezone.utc))
-        ev_b = cb.generate_event(datetime(2026, 1, 1, tzinfo=timezone.utc))
+        ev_a = ca.generate_event(datetime(2026, 1, 1, tzinfo=UTC))
+        ev_b = cb.generate_event(datetime(2026, 1, 1, tzinfo=UTC))
         assert ev_a["domain"] == ev_b["domain"]
         assert ev_a["bytes_out"] == ev_b["bytes_out"]
 
 
 def test_brute_force_anomaly_generation():
     client = create_population(num_clients=1, seed=1)[0]
-    start_ts = datetime(2026, 5, 1, 12, 0, 0, tzinfo=timezone.utc)
+    start_ts = datetime(2026, 5, 1, 12, 0, 0, tzinfo=UTC)
     events, label = inject_brute_force(client, start_ts, num_failures=10)
 
     assert len(events) == 11  # 10 failures + 1 success
@@ -59,7 +63,7 @@ def test_brute_force_anomaly_generation():
 
 def test_volume_spike_anomaly():
     client = create_population(num_clients=1, seed=1)[0]
-    ts = datetime(2026, 5, 1, 12, 0, 0, tzinfo=timezone.utc)
+    ts = datetime(2026, 5, 1, 12, 0, 0, tzinfo=UTC)
     ev, label = inject_volume_spike(client, ts, bytes_out=50_000_000)
 
     assert label["type"] == "volume_spike"
@@ -69,7 +73,7 @@ def test_volume_spike_anomaly():
 
 def test_beaconing_anomaly():
     client = create_population(num_clients=1, seed=1)[0]
-    start_ts = datetime(2026, 5, 1, 12, 0, 0, tzinfo=timezone.utc)
+    start_ts = datetime(2026, 5, 1, 12, 0, 0, tzinfo=UTC)
     events, label = inject_beaconing(client, start_ts, count=10, interval_seconds=3.0)
 
     assert len(events) == 10

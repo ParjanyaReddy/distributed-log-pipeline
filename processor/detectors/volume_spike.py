@@ -1,6 +1,6 @@
 import math
-from datetime import datetime, timezone
-from typing import List, Dict, Any
+from datetime import UTC, datetime
+from typing import Any
 
 from common.models import Event
 from processor.detectors.base import BaseDetector
@@ -60,10 +60,10 @@ class VolumeSpikeDetector(BaseDetector):
         self.bucket_seconds = bucket_seconds
 
         # Per-client state: { client_id: ClientEwmaState }
-        self.client_states: Dict[str, ClientEwmaState] = {}
+        self.client_states: dict[str, ClientEwmaState] = {}
         self.alerted_buckets: set[str] = set()
 
-    def process_event(self, event: Event) -> List[Dict[str, Any]]:
+    def process_event(self, event: Event) -> list[dict[str, Any]]:
         if self.is_late(event.ts):
             return []
 
@@ -81,7 +81,7 @@ class VolumeSpikeDetector(BaseDetector):
         alerts = []
         if is_spike:
             bucket_timestamp = int(event.ts.timestamp() // self.bucket_seconds) * int(self.bucket_seconds)
-            bucket_iso = datetime.fromtimestamp(bucket_timestamp, tz=timezone.utc).isoformat()
+            bucket_iso = datetime.fromtimestamp(bucket_timestamp, tz=UTC).isoformat()
             dedupe_key = f"volume_spike|{client_id}|{bucket_iso}"
 
             if dedupe_key not in self.alerted_buckets:
@@ -104,7 +104,7 @@ class VolumeSpikeDetector(BaseDetector):
 
         return alerts
 
-    def get_state(self) -> Dict[str, Any]:
+    def get_state(self) -> dict[str, Any]:
         return {
             client_id: {
                 "mean": state.mean,
@@ -117,7 +117,7 @@ class VolumeSpikeDetector(BaseDetector):
             for client_id, state in self.client_states.items()
         }
 
-    def set_state(self, state_dict: Dict[str, Any]) -> None:
+    def set_state(self, state_dict: dict[str, Any]) -> None:
         self.client_states.clear()
         for client_id, s in state_dict.items():
             state = ClientEwmaState(s["alpha"], s["z_thresh"], s["warmup"])

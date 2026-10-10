@@ -1,5 +1,6 @@
 import json
-from typing import Dict, Any, Optional
+from typing import Any
+
 import redis
 
 from common.config import REDIS_URI
@@ -12,8 +13,8 @@ class StateManager:
     """Handles per-client detector state checkpoints in Redis with graceful in-memory fallback."""
     def __init__(self, redis_uri: str = REDIS_URI, dry_run: bool = False):
         self.dry_run = dry_run
-        self.client: Optional[redis.Redis] = None
-        self.in_memory_store: Dict[str, str] = {}
+        self.client: redis.Redis | None = None
+        self.in_memory_store: dict[str, str] = {}
 
         if not self.dry_run:
             try:
@@ -24,7 +25,7 @@ class StateManager:
                 logger.warning(f"Redis unavailable, falling back to local memory checkpoints: {e}")
                 self.client = None
 
-    def save_checkpoint(self, detector_name: str, client_id: str, state_data: Dict[str, Any]) -> None:
+    def save_checkpoint(self, detector_name: str, client_id: str, state_data: dict[str, Any]) -> None:
         key = f"lp:detector:{detector_name}:{client_id}"
         json_val = json.dumps(state_data)
 
@@ -39,7 +40,7 @@ class StateManager:
             logger.warning(f"Failed to checkpoint state to Redis for {key}: {e}")
             self.in_memory_store[key] = json_val
 
-    def load_checkpoint(self, detector_name: str, client_id: str) -> Optional[Dict[str, Any]]:
+    def load_checkpoint(self, detector_name: str, client_id: str) -> dict[str, Any] | None:
         key = f"lp:detector:{detector_name}:{client_id}"
 
         if self.dry_run or self.client is None:

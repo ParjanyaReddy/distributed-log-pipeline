@@ -1,8 +1,9 @@
 import time
-from tests.chaos.chaos_harness import ChaosTestHarness
-from processor.main import LogProcessor
+
 from processor.dlq import DeadLetterQueue
+from processor.main import LogProcessor
 from processor.sink import DatabaseSink
+from tests.chaos.chaos_harness import ChaosTestHarness
 
 
 def benchmark_worker_scaling():

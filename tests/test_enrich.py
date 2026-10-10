@@ -1,14 +1,14 @@
-import pytest
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from uuid import uuid4
+
 from common.models import Event
-from processor.enrich import enrich_event, DOMAIN_CATEGORY_MAP
+from processor.enrich import enrich_event
 
 
 def test_enrich_known_domain():
     event = Event(
         event_id=uuid4(),
-        ts=datetime.now(timezone.utc),
+        ts=datetime.now(UTC),
         client_id="client-0001",
         src_ip="10.0.1.5",
         method="GET",
@@ -31,7 +31,7 @@ def test_enrich_known_domain():
 def test_enrich_domain_normalization():
     event = Event(
         event_id=uuid4(),
-        ts=datetime.now(timezone.utc),
+        ts=datetime.now(UTC),
         client_id="client-0002",
         src_ip="192.168.1.1",
         method="GET",
@@ -54,7 +54,7 @@ def test_enrich_domain_normalization():
 def test_enrich_unknown_domain_preserves_category():
     event = Event(
         event_id=uuid4(),
-        ts=datetime.now(timezone.utc),
+        ts=datetime.now(UTC),
         client_id="client-0003",
         src_ip="172.16.0.50",
         method="GET",

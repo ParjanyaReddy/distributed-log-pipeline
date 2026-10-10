@@ -1,14 +1,12 @@
-import pytest
-from datetime import datetime, timezone, timedelta
+from datetime import UTC, datetime, timedelta
 from uuid import uuid4
 
 from common.models import Event
-from processor.detectors.brute_force import BruteForceDetector
-from processor.detectors.volume_spike import VolumeSpikeDetector, ClientEwmaState
-from processor.detectors.rare_domain import RareDomainDetector
 from processor.detectors.beaconing import BeaconingDetector
+from processor.detectors.brute_force import BruteForceDetector
 from processor.detectors.engine import AnomalyEngine
-from processor.state import StateManager
+from processor.detectors.rare_domain import RareDomainDetector
+from processor.detectors.volume_spike import VolumeSpikeDetector
 
 
 def make_event(
@@ -17,11 +15,11 @@ def make_event(
     bytes_out: int = 500,
     auth_result: str = "none",
     category: str = "general",
-    ts: datetime = None
+    ts: datetime | None = None
 ) -> Event:
     return Event(
         event_id=uuid4(),
-        ts=ts or datetime.now(timezone.utc),
+        ts=ts or datetime.now(UTC),
         client_id=client_id,
         src_ip="10.0.0.1",
         method="POST" if auth_result != "none" else "GET",
@@ -43,7 +41,7 @@ def make_event(
 
 def test_brute_force_detection():
     detector = BruteForceDetector(failure_threshold=5, window_seconds=60.0)
-    base_ts = datetime(2026, 6, 1, 10, 0, 0, tzinfo=timezone.utc)
+    base_ts = datetime(2026, 6, 1, 10, 0, 0, tzinfo=UTC)
 
     # 4 failures: no alert yet
     for i in range(4):
@@ -61,7 +59,7 @@ def test_brute_force_detection():
 
 def test_brute_force_compromise_escalation():
     detector = BruteForceDetector(failure_threshold=3, window_seconds=60.0)
-    base_ts = datetime(2026, 6, 1, 10, 0, 0, tzinfo=timezone.utc)
+    base_ts = datetime(2026, 6, 1, 10, 0, 0, tzinfo=UTC)
 
     for i in range(3):
         detector.process_event(make_event(client_id="user-2", auth_result="failure", ts=base_ts + timedelta(seconds=i)))
@@ -79,7 +77,7 @@ def test_brute_force_compromise_escalation():
 
 def test_volume_spike_warmup_guard():
     detector = VolumeSpikeDetector(alpha=0.1, z_thresh=3.0, warmup=30)
-    base_ts = datetime(2026, 6, 1, 10, 0, 0, tzinfo=timezone.utc)
+    base_ts = datetime(2026, 6, 1, 10, 0, 0, tzinfo=UTC)
 
     # During warmup (< 30 samples), even a massive spike does not alert
     for i in range(15):
@@ -93,7 +91,7 @@ def test_volume_spike_warmup_guard():
 
 def test_volume_spike_zero_variance_guard():
     detector = VolumeSpikeDetector(alpha=0.1, z_thresh=3.0, warmup=10)
-    base_ts = datetime(2026, 6, 1, 10, 0, 0, tzinfo=timezone.utc)
+    base_ts = datetime(2026, 6, 1, 10, 0, 0, tzinfo=UTC)
 
     # Exactly identical byte counts (variance = 0)
     for i in range(15):
@@ -104,7 +102,7 @@ def test_volume_spike_zero_variance_guard():
 
 def test_volume_spike_detection():
     detector = VolumeSpikeDetector(alpha=0.1, z_thresh=3.0, warmup=10)
-    base_ts = datetime(2026, 6, 1, 10, 0, 0, tzinfo=timezone.utc)
+    base_ts = datetime(2026, 6, 1, 10, 0, 0, tzinfo=UTC)
 
     # Feed baseline traffic with natural small variance
     for i in range(20):
@@ -126,7 +124,7 @@ def test_volume_spike_detection():
 
 def test_rare_domain_detection():
     detector = RareDomainDetector(min_bytes_out=50_000)
-    base_ts = datetime(2026, 6, 1, 10, 0, 0, tzinfo=timezone.utc)
+    base_ts = datetime(2026, 6, 1, 10, 0, 0, tzinfo=UTC)
 
     # Low bytes to new domain: no alert
     ev1 = make_event(client_id="user-6", domain="normal-site.com", bytes_out=500, ts=base_ts)
@@ -151,7 +149,7 @@ def test_rare_domain_detection():
 
 def test_beaconing_detection():
     detector = BeaconingDetector(min_samples=6, cv_threshold=0.15)
-    base_ts = datetime(2026, 6, 1, 10, 0, 0, tzinfo=timezone.utc)
+    base_ts = datetime(2026, 6, 1, 10, 0, 0, tzinfo=UTC)
 
     # Strict periodic requests every 5.0 seconds (near-zero jitter)
     alerts = []
@@ -170,7 +168,7 @@ def test_beaconing_detection():
 
 def test_beaconing_irregular_traffic_no_alert():
     detector = BeaconingDetector(min_samples=6, cv_threshold=0.15)
-    base_ts = datetime(2026, 6, 1, 10, 0, 0, tzinfo=timezone.utc)
+    base_ts = datetime(2026, 6, 1, 10, 0, 0, tzinfo=UTC)
 
     # Irregular human requests (highly variable intervals)
     delays = [1.0, 15.0, 3.0, 45.0, 2.0, 30.0, 8.0, 60.0]

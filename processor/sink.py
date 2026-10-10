@@ -1,9 +1,10 @@
-import json
 import random
 import time
-from typing import List, Dict, Any, Optional, Callable
+from collections.abc import Callable
+from typing import Any
+
 import psycopg2
-from psycopg2.extras import execute_values, Json
+from psycopg2.extras import Json, execute_values
 
 from common.config import DB_URI, MAX_BATCH_SIZE
 from common.logging import get_logger
@@ -40,11 +41,11 @@ class DatabaseSink:
         self.page_size = min(page_size, 1000)  # Rule R-8: page_size <= 1000
         self.max_retries = max_retries
         self.dry_run = dry_run
-        self.conn: Optional[Any] = None
+        self.conn: Any | None = None
 
         # For dry_run testing
-        self.in_memory_events: List[tuple] = []
-        self.in_memory_alerts: List[tuple] = []
+        self.in_memory_events: list[tuple] = []
+        self.in_memory_alerts: list[tuple] = []
 
     def get_connection(self) -> Any:
         if self.conn is None or self.conn.closed:
@@ -58,9 +59,9 @@ class DatabaseSink:
 
     def write_batch(
         self,
-        events: List[Event],
-        alerts: Optional[List[Dict[str, Any]]] = None,
-        keep_alive_fn: Optional[Callable[[], None]] = None
+        events: list[Event],
+        alerts: list[dict[str, Any]] | None = None,
+        keep_alive_fn: Callable[[], None] | None = None
     ) -> None:
         """Writes events and alerts in a single database transaction with retry backoff."""
         if not events and not alerts:
@@ -159,8 +160,8 @@ class DatabaseSink:
 
     def _write_dry_run(
         self,
-        events: List[Event],
-        alerts: Optional[List[Dict[str, Any]]] = None
+        events: list[Event],
+        alerts: list[dict[str, Any]] | None = None
     ) -> None:
         """Simulates ON CONFLICT DO NOTHING in-memory for testing."""
         # Simulated composite primary key for events: (event_id, ts)

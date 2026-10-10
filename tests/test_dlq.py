@@ -1,5 +1,5 @@
 import base64
-import pytest
+
 from processor.dlq import DeadLetterQueue
 
 

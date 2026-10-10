@@ -1,8 +1,9 @@
-from pydantic import BaseModel, Field, IPvAnyAddress, field_validator, ValidationInfo
-from typing import Optional, Literal
-from uuid import UUID
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from enum import Enum
+from typing import Literal
+from uuid import UUID
+
+from pydantic import BaseModel, Field, field_validator
 
 
 class ReasonCode(str, Enum):
@@ -47,7 +48,7 @@ class Event(BaseModel):
     def validate_timestamp(cls, v: datetime) -> datetime:
         if v.tzinfo is None:
             raise ValueError(ReasonCode.NAIVE_TIMESTAMP.value)
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         if (v - now).total_seconds() > 86400:
             raise ValueError(ReasonCode.FUTURE_TIMESTAMP.value)
         return v

@@ -1,13 +1,13 @@
-from typing import List, Dict, Any, Optional
+from typing import Any
 
 from common.logging import get_logger
 from common.metrics import ALERTS_TOTAL, DETECTOR_ERRORS
 from common.models import Event
 from processor.detectors.base import BaseDetector
-from processor.detectors.brute_force import BruteForceDetector
-from processor.detectors.volume_spike import VolumeSpikeDetector
-from processor.detectors.rare_domain import RareDomainDetector
 from processor.detectors.beaconing import BeaconingDetector
+from processor.detectors.brute_force import BruteForceDetector
+from processor.detectors.rare_domain import RareDomainDetector
+from processor.detectors.volume_spike import VolumeSpikeDetector
 from processor.state import StateManager
 
 logger = get_logger("processor.detectors.engine")
@@ -15,17 +15,17 @@ logger = get_logger("processor.detectors.engine")
 
 class AnomalyEngine:
     """Orchestrates all anomaly detectors with strict per-detector error isolation."""
-    def __init__(self, state_manager: Optional[StateManager] = None):
+    def __init__(self, state_manager: StateManager | None = None):
         self.state_manager = state_manager or StateManager(dry_run=True)
-        self.detectors: List[BaseDetector] = [
+        self.detectors: list[BaseDetector] = [
             BruteForceDetector(),
             VolumeSpikeDetector(),
             RareDomainDetector(),
             BeaconingDetector()
         ]
 
-    def evaluate_event(self, event: Event) -> List[Dict[str, Any]]:
-        alerts: List[Dict[str, Any]] = []
+    def evaluate_event(self, event: Event) -> list[dict[str, Any]]:
+        alerts: list[dict[str, Any]] = []
 
         for detector in self.detectors:
             try:

@@ -1,7 +1,7 @@
 import math
-from datetime import datetime, timezone
-from typing import List, Dict, Any, Deque
 from collections import deque
+from datetime import UTC, datetime
+from typing import Any
 
 from common.models import Event
 from processor.detectors.base import BaseDetector
@@ -25,10 +25,10 @@ class BeaconingDetector(BaseDetector):
         self.bucket_seconds = bucket_seconds
 
         # Map of (client_id, domain) -> deque of timestamps
-        self.history: Dict[tuple[str, str], Deque[datetime]] = {}
+        self.history: dict[tuple[str, str], deque[datetime]] = {}
         self.alerted_buckets: set[str] = set()
 
-    def process_event(self, event: Event) -> List[Dict[str, Any]]:
+    def process_event(self, event: Event) -> list[dict[str, Any]]:
         if self.is_late(event.ts):
             return []
 
@@ -62,7 +62,7 @@ class BeaconingDetector(BaseDetector):
 
                     if cv <= self.cv_threshold:
                         bucket_timestamp = int(event.ts.timestamp() // self.bucket_seconds) * int(self.bucket_seconds)
-                        bucket_iso = datetime.fromtimestamp(bucket_timestamp, tz=timezone.utc).isoformat()
+                        bucket_iso = datetime.fromtimestamp(bucket_timestamp, tz=UTC).isoformat()
                         dedupe_key = f"beaconing|{event.client_id}|{event.domain}|{bucket_iso}"
 
                         if dedupe_key not in self.alerted_buckets:
@@ -85,13 +85,13 @@ class BeaconingDetector(BaseDetector):
 
         return alerts
 
-    def get_state(self) -> Dict[str, Any]:
+    def get_state(self) -> dict[str, Any]:
         return {
             f"{cid}::{domain}": [ts.isoformat() for ts in dq]
             for (cid, domain), dq in self.history.items()
         }
 
-    def set_state(self, state_dict: Dict[str, Any]) -> None:
+    def set_state(self, state_dict: dict[str, Any]) -> None:
         self.history.clear()
         for composite_key, ts_list in state_dict.items():
             cid, domain = composite_key.split("::", 1)

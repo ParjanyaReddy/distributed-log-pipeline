@@ -1,7 +1,7 @@
 import json
 import os
 import zlib
-import pytest
+
 from producers.generator import LogGenerator
 
 

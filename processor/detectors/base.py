@@ -1,9 +1,9 @@
 from abc import ABC, abstractmethod
-from datetime import datetime, timezone
-from typing import List, Dict, Any, Optional
+from datetime import datetime
+from typing import Any
 
 from common.logging import get_logger
-from common.metrics import LATE_EVENTS, ALERTS_TOTAL
+from common.metrics import LATE_EVENTS
 from common.models import Event
 
 logger = get_logger("processor.detectors.base")
@@ -13,7 +13,7 @@ class BaseDetector(ABC):
     def __init__(self, name: str, allowed_lateness_sec: float = 30.0):
         self.name = name
         self.allowed_lateness_sec = allowed_lateness_sec
-        self.watermark_ts: Optional[datetime] = None
+        self.watermark_ts: datetime | None = None
 
     def is_late(self, event_ts: datetime) -> bool:
         """Checks if event timestamp is too far behind the observed watermark."""
@@ -32,16 +32,13 @@ class BaseDetector(ABC):
         return False
 
     @abstractmethod
-    def process_event(self, event: Event) -> List[Dict[str, Any]]:
+    def process_event(self, event: Event) -> list[dict[str, Any]]:
         """Evaluates an event using event-time logic. Returns a list of alert dicts."""
-        pass
 
     @abstractmethod
-    def get_state(self) -> Dict[str, Any]:
+    def get_state(self) -> dict[str, Any]:
         """Serializes internal state for Redis checkpointing."""
-        pass
 
     @abstractmethod
-    def set_state(self, state: Dict[str, Any]) -> None:
+    def set_state(self, state: dict[str, Any]) -> None:
         """Restores internal state from a Redis checkpoint."""
-        pass

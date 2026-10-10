@@ -1,5 +1,5 @@
 import argparse
-import time
+
 from common.logging import get_logger
 from producers.generator import LogGenerator
 

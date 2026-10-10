@@ -1,11 +1,9 @@
-import pytest
-from unittest.mock import MagicMock
 import psycopg2
 
-from tests.chaos.chaos_harness import ChaosTestHarness
-from processor.main import LogProcessor
 from processor.dlq import DeadLetterQueue
+from processor.main import LogProcessor
 from processor.sink import DatabaseSink
+from tests.chaos.chaos_harness import ChaosTestHarness
 
 
 class OutageMockSink(DatabaseSink):

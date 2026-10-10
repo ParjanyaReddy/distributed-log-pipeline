@@ -1,31 +1,27 @@
 import argparse
 import signal
-import sys
 import time
-from datetime import datetime, timezone
-from typing import Dict, List, Optional, Callable, Any
+from datetime import UTC, datetime
+from typing import Any
 
 from confluent_kafka import Consumer, KafkaError, TopicPartition
 from prometheus_client import start_http_server
 
 from common.config import (
-    KAFKA_BROKERS,
-    TOPIC_RAW_LOGS,
+    BATCH_TIMEOUT_SEC,
     DB_URI,
+    KAFKA_BROKERS,
     MAX_BATCH_SIZE,
-    BATCH_TIMEOUT_SEC
+    TOPIC_RAW_LOGS,
 )
 from common.logging import get_logger
-from common.metrics import (
-    EVENTS_CONSUMED,
-    PROCESSING_LATENCY_SECONDS
-)
+from common.metrics import EVENTS_CONSUMED, PROCESSING_LATENCY_SECONDS
 from common.models import Event, ValidationFailure
-from processor.validate import validate_event_payload
-from processor.enrich import enrich_event
-from processor.dlq import DeadLetterQueue
-from processor.sink import DatabaseSink
 from processor.detectors.engine import AnomalyEngine
+from processor.dlq import DeadLetterQueue
+from processor.enrich import enrich_event
+from processor.sink import DatabaseSink
+from processor.validate import validate_event_payload
 
 logger = get_logger("processor.main")
 
@@ -39,9 +35,9 @@ class LogProcessor:
         db_uri: str = DB_URI,
         max_batch_size: int = MAX_BATCH_SIZE,
         batch_timeout_sec: float = BATCH_TIMEOUT_SEC,
-        dlq: Optional[DeadLetterQueue] = None,
-        sink: Optional[DatabaseSink] = None,
-        anomaly_engine: Optional[AnomalyEngine] = None,
+        dlq: DeadLetterQueue | None = None,
+        sink: DatabaseSink | None = None,
+        anomaly_engine: AnomalyEngine | None = None,
         dry_run: bool = False
     ):
         self.input_topic = input_topic
@@ -53,15 +49,15 @@ class LogProcessor:
         self.engine = anomaly_engine or AnomalyEngine()
 
         self.running = True
-        self.batch: List[Event] = []
-        self.alerts_batch: List[Dict[str, Any]] = []
+        self.batch: list[Event] = []
+        self.alerts_batch: list[dict[str, Any]] = []
         self.batch_start_time = time.time()
 
         # Track the next offset to commit per partition: { (topic, partition): offset + 1 }
-        self.pending_offsets: Dict[tuple, int] = {}
-        self.committed_offsets: Dict[tuple, int] = {}
+        self.pending_offsets: dict[tuple, int] = {}
+        self.committed_offsets: dict[tuple, int] = {}
 
-        self.consumer: Optional[Consumer] = None
+        self.consumer: Consumer | None = None
         if not self.dry_run:
             conf = {
                 "bootstrap.servers": bootstrap_servers,
@@ -77,11 +73,11 @@ class LogProcessor:
                 logger.error(f"Failed to create Kafka consumer: {e}")
                 raise
 
-    def on_assign(self, consumer: Consumer, partitions: List[TopicPartition]) -> None:
+    def on_assign(self, consumer: Consumer, partitions: list[TopicPartition]) -> None:
         logger.info(f"Partitions assigned: {[f'{p.topic}-{p.partition}' for p in partitions]}")
         consumer.assign(partitions)
 
-    def on_revoke(self, consumer: Consumer, partitions: List[TopicPartition]) -> None:
+    def on_revoke(self, consumer: Consumer, partitions: list[TopicPartition]) -> None:
         logger.info(f"Partitions revoked: {[f'{p.topic}-{p.partition}' for p in partitions]}")
         # Rule R-6: Flush pending work before releasing partition ownership
         self.flush_batch(force=True)
@@ -156,7 +152,7 @@ class LogProcessor:
                 self.alerts_batch.extend(detected_alerts)
 
             # Record processing latency from event timestamp
-            latency = (datetime.now(timezone.utc) - event.ts).total_seconds()
+            latency = (datetime.now(UTC) - event.ts).total_seconds()
             if latency >= 0:
                 PROCESSING_LATENCY_SECONDS.observe(latency)
             self.batch.append(event)

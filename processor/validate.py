@@ -1,8 +1,7 @@
 import ipaddress
 import json
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from uuid import UUID
-from typing import Any, Dict, Union
 
 from common.models import Event, ReasonCode, ValidationFailure
 
@@ -28,12 +27,12 @@ def validate_event_payload(payload_bytes: bytes) -> Event:
     try:
         decoded_text = payload_bytes.decode("utf-8")
     except UnicodeDecodeError as e:
-        raise ValidationFailure(ReasonCode.INVALID_JSON, f"Non-UTF-8 payload: {e}")
+        raise ValidationFailure(ReasonCode.INVALID_JSON, f"Non-UTF-8 payload: {e}") from e
 
     try:
         data = json.loads(decoded_text)
     except json.JSONDecodeError as e:
-        raise ValidationFailure(ReasonCode.INVALID_JSON, f"Malformed JSON: {e}")
+        raise ValidationFailure(ReasonCode.INVALID_JSON, f"Malformed JSON: {e}") from e
 
     if not isinstance(data, dict):
         raise ValidationFailure(ReasonCode.INVALID_JSON, "Payload must be a JSON object")
@@ -46,14 +45,14 @@ def validate_event_payload(payload_bytes: bytes) -> Event:
     # Validate UUID
     try:
         UUID(str(data["event_id"]))
-    except (ValueError, AttributeError, TypeError):
-        raise ValidationFailure(ReasonCode.INVALID_UUID, f"Invalid UUID: {data['event_id']}")
+    except (ValueError, AttributeError, TypeError) as e:
+        raise ValidationFailure(ReasonCode.INVALID_UUID, f"Invalid UUID: {data['event_id']}") from e
 
     # Validate IP address
     try:
         ipaddress.ip_address(str(data["src_ip"]))
-    except ValueError:
-        raise ValidationFailure(ReasonCode.INVALID_IP, f"Invalid IP address: {data['src_ip']}")
+    except ValueError as e:
+        raise ValidationFailure(ReasonCode.INVALID_IP, f"Invalid IP address: {data['src_ip']}") from e
 
     # Validate timestamp
     raw_ts = data["ts"]
@@ -61,7 +60,7 @@ def validate_event_payload(payload_bytes: bytes) -> Event:
         try:
             parsed_ts = datetime.fromisoformat(raw_ts.replace("Z", "+00:00"))
         except ValueError as e:
-            raise ValidationFailure(ReasonCode.NAIVE_TIMESTAMP, f"Unparsable timestamp: {e}")
+            raise ValidationFailure(ReasonCode.NAIVE_TIMESTAMP, f"Unparsable timestamp: {e}") from e
     elif isinstance(raw_ts, datetime):
         parsed_ts = raw_ts
     else:
@@ -70,7 +69,7 @@ def validate_event_payload(payload_bytes: bytes) -> Event:
     if parsed_ts.tzinfo is None:
         raise ValidationFailure(ReasonCode.NAIVE_TIMESTAMP, "Timestamp must have timezone")
 
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     if (parsed_ts - now).total_seconds() > 86400:
         raise ValidationFailure(ReasonCode.FUTURE_TIMESTAMP, "Timestamp is > 24 hours in the future")
 
@@ -79,8 +78,8 @@ def validate_event_payload(payload_bytes: bytes) -> Event:
         status_code = int(data["status"])
         if not (100 <= status_code <= 599):
             raise ValidationFailure(ReasonCode.STATUS_OUT_OF_RANGE, f"Status code {status_code} out of range")
-    except (ValueError, TypeError):
-        raise ValidationFailure(ReasonCode.STATUS_OUT_OF_RANGE, f"Invalid status: {data['status']}")
+    except (ValueError, TypeError) as e:
+        raise ValidationFailure(ReasonCode.STATUS_OUT_OF_RANGE, f"Invalid status: {data['status']}") from e
 
     # Validate bytes
     try:
@@ -88,8 +87,8 @@ def validate_event_payload(payload_bytes: bytes) -> Event:
         bytes_in = int(data["bytes_in"])
         if bytes_out < 0 or bytes_in < 0:
             raise ValidationFailure(ReasonCode.NEGATIVE_BYTES, f"Bytes cannot be negative: out={bytes_out}, in={bytes_in}")
-    except (ValueError, TypeError):
-        raise ValidationFailure(ReasonCode.NEGATIVE_BYTES, "Byte counts must be valid integers")
+    except (ValueError, TypeError) as e:
+        raise ValidationFailure(ReasonCode.NEGATIVE_BYTES, "Byte counts must be valid integers") from e
 
     # Validate action
     if data["action"] not in VALID_ACTIONS:

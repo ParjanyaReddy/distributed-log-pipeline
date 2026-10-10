@@ -1,10 +1,8 @@
-from typing import List, Dict, Any, Set
-from uuid import uuid4
-from datetime import datetime, timezone
 import json
+from datetime import UTC, datetime
+from typing import Any
+from uuid import uuid4
 
-from common.models import Event
-from processor.main import LogProcessor
 from processor.dlq import DeadLetterQueue
 from processor.sink import DatabaseSink
 
@@ -13,13 +11,13 @@ class ChaosTestHarness:
     """Orchestrates chaos simulation runs and asserts zero data loss invariants."""
     def __init__(self, num_partitions: int = 6):
         self.num_partitions = num_partitions
-        self.produced_events: List[Dict[str, Any]] = []
-        self.produced_malformed: List[bytes] = []
+        self.produced_events: list[dict[str, Any]] = []
+        self.produced_malformed: list[bytes] = []
 
     def make_event(self, client_id: str, i: int, domain: str = "service.corp") -> bytes:
         data = {
             "event_id": str(uuid4()),
-            "ts": datetime.now(timezone.utc).isoformat(),
+            "ts": datetime.now(UTC).isoformat(),
             "client_id": client_id,
             "src_ip": "10.0.1.20",
             "method": "GET",
@@ -42,7 +40,7 @@ class ChaosTestHarness:
         elif reason == "bad_uuid":
             raw = json.dumps({
                 "event_id": "not-a-uuid",
-                "ts": datetime.now(timezone.utc).isoformat(),
+                "ts": datetime.now(UTC).isoformat(),
                 "client_id": "client-bad",
                 "src_ip": "10.0.0.1",
                 "method": "GET",
@@ -71,7 +69,7 @@ class ChaosTestHarness:
         dlq_count = len(dlq_records)
 
         # Check for zero duplicate rows in the stored dataset
-        stored_event_ids: Set[str] = {ev[0] for ev in stored_tuples}
+        stored_event_ids: set[str] = {ev[0] for ev in stored_tuples}
         assert stored_count == len(stored_event_ids), (
             f"Duplicate records found in database! Total stored: {stored_count}, Distinct IDs: {len(stored_event_ids)}"
         )

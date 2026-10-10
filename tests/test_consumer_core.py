@@ -1,16 +1,16 @@
 import json
-import pytest
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from uuid import uuid4
-from processor.main import LogProcessor
+
 from processor.dlq import DeadLetterQueue
+from processor.main import LogProcessor
 from producers.anomalies import make_malformed_event
 
 
 def make_valid_raw_event(i: int) -> bytes:
     data = {
         "event_id": str(uuid4()),
-        "ts": datetime.now(timezone.utc).isoformat(),
+        "ts": datetime.now(UTC).isoformat(),
         "client_id": f"client-{(i % 50) + 1:04d}",
         "src_ip": f"10.0.0.{(i % 200) + 1}",
         "method": "GET",

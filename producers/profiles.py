@@ -1,24 +1,24 @@
 import random
-from dataclasses import dataclass, field
-from datetime import datetime, timezone
-from typing import List, Dict, Any, Optional
+from dataclasses import dataclass
+from datetime import UTC, datetime
+from typing import Any
 from uuid import uuid4
 
 
 @dataclass
 class BehaviorProfile:
     name: str
-    domains: List[str]
-    categories: List[str]
-    user_agents: List[str]
-    methods: List[str]
-    method_weights: List[float]
+    domains: list[str]
+    categories: list[str]
+    user_agents: list[str]
+    methods: list[str]
+    method_weights: list[float]
     bytes_out_range: tuple[int, int]
     bytes_in_range: tuple[int, int]
-    auth_results: List[str]
-    auth_weights: List[float]
-    status_codes: List[int]
-    status_weights: List[float]
+    auth_results: list[str]
+    auth_weights: list[float]
+    status_codes: list[int]
+    status_weights: list[float]
 
 
 OFFICE_WORKER_PROFILE = BehaviorProfile(
@@ -93,11 +93,11 @@ class SimulatedClient:
         self.profile = profile
         self.rng = rng
 
-    def generate_event(self, ts: Optional[datetime] = None) -> Dict[str, Any]:
+    def generate_event(self, ts: datetime | None = None) -> dict[str, Any]:
         if ts is None:
-            ts = datetime.now(timezone.utc)
+            ts = datetime.now(UTC)
         elif ts.tzinfo is None:
-            ts = ts.replace(tzinfo=timezone.utc)
+            ts = ts.replace(tzinfo=UTC)
 
         domain = self.rng.choice(self.profile.domains)
         category = self.rng.choice(self.profile.categories)
@@ -130,13 +130,13 @@ class SimulatedClient:
         }
 
 
-def create_population(num_clients: int = 350, seed: int = 42) -> List[SimulatedClient]:
+def create_population(num_clients: int = 350, seed: int = 42) -> list[SimulatedClient]:
     """Creates a deterministic pool of simulated clients distributed across profiles."""
     rng = random.Random(seed)
     profiles = [OFFICE_WORKER_PROFILE, DEVELOPER_PROFILE, HEAVY_DOWNLOADER_PROFILE]
     profile_weights = [0.60, 0.30, 0.10]
 
-    clients: List[SimulatedClient] = []
+    clients: list[SimulatedClient] = []
     for i in range(1, num_clients + 1):
         client_id = f"client-{i:04d}"
         # Deterministic IP generation within a private range (10.x.y.z)

@@ -1,12 +1,13 @@
 import time
+from datetime import UTC, datetime
 from uuid import uuid4
-from datetime import datetime, timezone
+
 from common.models import Event
 from processor.sink import DatabaseSink
 
 
 def generate_batch(count: int) -> list[Event]:
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     return [
         Event(
             event_id=uuid4(),
