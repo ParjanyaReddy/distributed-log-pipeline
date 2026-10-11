@@ -38,3 +38,55 @@ def test_bridge_malformed_event_dlq():
     # Feed garbage bytes
     bridge.process_raw_event(b"bad-non-json-corrupt-payload", partition=2)
     assert len(bridge.dlq.in_memory_records) == prev_dlq + 1
+
+
+def test_api_router_endpoints_and_error_handling():
+    from web.server import api_router
+
+    # Health probe
+    res_health = api_router.dispatch_get("/api/v1/health")
+    assert res_health is not None
+    assert res_health.status_code == 200
+    assert b"healthy" in res_health.serialize()
+
+    # Stats
+    res_stats = api_router.dispatch_get("/api/v1/stats")
+    assert res_stats is not None
+    assert res_stats.status_code == 200
+    assert b"rate_ops" in res_stats.serialize()
+
+    # Logs
+    res_logs = api_router.dispatch_get("/api/v1/logs?limit=10")
+    assert res_logs is not None
+    assert res_logs.status_code == 200
+
+    # Alerts
+    res_alerts = api_router.dispatch_get("/api/v1/alerts?limit=5")
+    assert res_alerts is not None
+    assert res_alerts.status_code == 200
+
+    # Simulate attack valid
+    res_sim = api_router.dispatch_post("/api/v1/simulate/attack", b'{"type": "brute_force"}')
+    assert res_sim is not None
+    assert res_sim.status_code == 200
+
+    # Simulate attack invalid type (422)
+    res_sim_bad = api_router.dispatch_post("/api/v1/simulate/attack", b'{"type": "unknown_exploit"}')
+    assert res_sim_bad is not None
+    assert res_sim_bad.status_code == 422
+
+    # Malformed JSON body (400)
+    res_sim_malformed = api_router.dispatch_post("/api/v1/simulate/attack", b'not-json')
+    assert res_sim_malformed is not None
+    assert res_sim_malformed.status_code == 400
+
+    # Method not allowed (405)
+    res_method_not_allowed = api_router.dispatch_get("/api/v1/simulate/attack")
+    assert res_method_not_allowed is not None
+    assert res_method_not_allowed.status_code == 405
+
+    # Not found (404)
+    res_not_found = api_router.dispatch_get("/api/v1/non_existent_route")
+    assert res_not_found is not None
+    assert res_not_found.status_code == 404
+

@@ -1,0 +1,14 @@
+{
+  "include": [
+    "."
+  ],
+  "exclude": [
+    "**/__pycache__",
+    ".git"
+  ],
+  "extraPaths": [
+    "."
+  ],
+  "pythonPlatform": "Windows",
+  "pythonVersion": "3.14"
+}

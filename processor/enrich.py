@@ -1,6 +1,9 @@
 import ipaddress
 
+from common.logging import get_logger
 from common.models import Event
+
+logger = get_logger("processor.enrich")
 
 # Static lookup mapping common domains to curated threat/business categories
 DOMAIN_CATEGORY_MAP: dict[str, str] = {
@@ -53,7 +56,7 @@ def enrich_event(event: Event) -> Event:
     try:
         parsed_ip = ipaddress.ip_address(event.src_ip)
         event.src_ip = parsed_ip.compressed
-    except ValueError:
-        pass
+    except ValueError as val_err:
+        logger.debug(f"IP canonicalization skipped for '{event.src_ip}': {val_err}")
 
     return event

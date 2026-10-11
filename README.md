@@ -142,7 +142,76 @@ $$\text{Produced (1,500)} == \text{Stored Distinct (500)} + \text{DLQ (1,000)} \
 
 ---
 
-## 7. Quickstart Guide
+## 7. Project Organization & Software Architecture
+
+The codebase separates infrastructure, stream processing logic, API controllers, services, and frontend presentation:
+
+```
+Distributed Log Ingestion Pipeline/
+├── common/                     # Shared cross-cutting concerns
+│   ├── config.py               # Typed AppConfig & .env environment configuration
+│   ├── logging.py              # Structured JSON-lines logging
+│   ├── metrics.py              # Low-cardinality Prometheus metrics
+│   └── models.py               # Pydantic v2 domain schemas (Event, ReasonCode)
+├── processor/                  # High-throughput stream ingestion worker
+│   ├── detectors/              # Pure algorithmic anomaly detection engines
+│   │   ├── base.py             # Base detector with event-time watermarking
+│   │   ├── beaconing.py        # C2 interval jitter detection
+│   │   ├── brute_force.py      # Auth failure burst sliding window
+│   │   ├── engine.py           # Anomaly orchestration & per-detector isolation
+│   │   ├── rare_domain.py      # Infrequent destination thresholding
+│   │   └── volume_spike.py     # Streaming EWMA z-score exfiltration detection
+│   ├── dlq.py                  # Dead-Letter Queue producer & serialization
+│   ├── enrich.py               # Domain classification & IP canonicalization
+│   ├── main.py                 # Kafka consumer loop, rebalance listener, batching
+│   ├── sink.py                 # TimescaleDB idempotent batch writer with backoff
+│   ├── state.py                # Redis detector checkpoint manager with local fallback
+│   └── validate.py             # Strict 11-rule byte contract validator
+├── producers/                  # Synthetic multi-tenant traffic generation
+│   ├── anomalies.py            # MITRE ATT&CK adversarial attack injectors
+│   ├── generator.py            # High-rate Kafka producer with idempotence
+│   └── profiles.py             # Client behavior profiles & Markov models
+├── web/                        # SOC Command Console & REST API
+│   ├── api/                    # Scalable REST API layer
+│   │   ├── base.py             # Standard JSON/error response wrappers
+│   │   ├── handlers.py         # Controller actions & error handling
+│   │   ├── routes.py           # Versioned (/api/v1) & legacy APIRouter
+│   │   └── schemas.py          # Request & response Pydantic contracts
+│   ├── services/               # Isolated backend business logic
+│   │   └── bridge.py           # WebPipelineBridge & thread-safe stream buffers
+│   ├── static/                 # Frontend presentation layer
+│   │   ├── js/
+│   │   │   ├── components/     # Modular reusable UI components
+│   │   │   │   ├── AttackPanel.js      # Adversary injection panel
+│   │   │   │   ├── InspectorModal.js   # Raw JSON document viewer
+│   │   │   │   ├── KpiMetrics.js       # Live telemetry cards
+│   │   │   │   ├── LogTable.js         # Searchable log viewer
+│   │   │   │   ├── PartitionMatrix.js  # 6-shard Kafka partition visualizer
+│   │   │   │   ├── ThreatRadar.js      # SIEM incident feed
+│   │   │   │   └── Toast.js            # Toast error/notification system
+│   │   │   ├── services/       # Resilient ApiClient with timeouts
+│   │   │   ├── state/          # Centralized reactive StateStore
+│   │   │   └── utils/          # Formatter & MITRE mapping utilities
+│   │   ├── app.js              # Clean frontend orchestrator
+│   │   ├── index.html          # Semantic HTML5 layout
+│   │   └── style.css           # Modern dark-mode SOC console design system
+│   └── server.py               # Multi-threaded HTTP server bootstrap
+├── tests/                      # Pytest unit, detector, web, and chaos suites
+├── docs/                       # Specifications and REST API documentation
+├── .env.example                # Documented environment configuration template
+└── docker-compose.yml          # Containerized dependencies (Kafka, DB, Redis, etc.)
+```
+
+### Key Architectural Tenets
+- **Separation of Concerns:** Business logic (`web/services/bridge.py`) is completely decoupled from HTTP routing (`web/api/routes.py`) and UI presentation.
+- **Centralized State Management:** The frontend UI uses an observable `StateStore` to manage stats, alerts, search facets, and modal states without race conditions.
+- **Environment Configuration:** All ports, connection strings, topics, and batch sizes load through typed `AppConfig` with automatic `.env` support and `.env.example` templates.
+- **Robust Error Handling:** Comprehensive error catching, structured error envelopes (`400`, `404`, `405`, `422`, `500`), retry with exponential backoff and jitter, and user-facing toast notifications.
+- **Scalable API Architecture:** Clean `APIRouter` supporting versioned endpoints (`/api/v1/...`) with backwards compatibility.
+
+---
+
+## 8. Quickstart Guide
 
 ### Prerequisites
 - Python 3.11+
@@ -182,7 +251,7 @@ Opens a high-performance, dark-themed SOC operations command deck at `http://loc
 
 ---
 
-## 8. Distributed Systems Interview Questions Prepared By This Project
+## 9. Distributed Systems Interview Questions Prepared By This Project
 
 1. **How does the choice of partition key affect load distribution and ordering?**
    *Partitioning on `client_id` guarantees in-order arrival per client and allows local state tracking. The trade-off is susceptibility to hot partitions if a client generates disproportionate volume.*

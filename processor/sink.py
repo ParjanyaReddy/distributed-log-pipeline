@@ -138,8 +138,8 @@ class DatabaseSink:
                 if self.conn and not self.conn.closed:
                     try:
                         self.conn.rollback()
-                    except Exception:
-                        pass
+                    except Exception as rollback_err:
+                        logger.warning(f"Connection rollback failed during retry: {rollback_err}")
                     self.conn.close()
                 self.conn = None
 

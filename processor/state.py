@@ -61,5 +61,6 @@ class StateManager:
         if self.client is not None:
             try:
                 self.client.delete(key)
-            except Exception:
-                pass
+            except Exception as del_err:
+                logger.warning(f"Failed to delete Redis state checkpoint for {key}: {del_err}")
+

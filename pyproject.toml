@@ -10,3 +10,8 @@ ignore = [
     "B008",  # Do not perform function call in argument defaults
     "B905",  # zip() without an explicit strict= parameter
 ]
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
+testpaths = ["tests"]
+

@@ -3,162 +3,393 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>SOC Live Console | Distributed Log Pipeline</title>
+  <title>Apex Stream | Distributed Log Ingestion Platform</title>
   <link rel="stylesheet" href="style.css">
-  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220%22><text y=%2226%22 font-size=%2226%22>🛡️</text></svg>">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 24 24%22 fill=%22none%22 stroke=%22%2338BDF8%22 stroke-width=%222%22><polygon points=%2212 2 2 7 12 12 22 7 12 2%22/><polyline points=%222 17 12 22 22 17%22/><polyline points=%222 12 12 17 22 12%22/></svg>">
 </head>
 <body>
-  <div class="app-container">
-    
-    <!-- Top Navigation Bar -->
-    <header class="top-header">
-      <div class="brand-section">
-        <div class="logo-badge">⚡ SOC-OPS</div>
-        <div class="title-group">
-          <h1>DISTRIBUTED LOG STREAM &amp; ANOMALY RADAR</h1>
-          <p>High-Throughput Partition-Aware Real-Time Processing Engine</p>
+  <div class="app-wrapper">
+
+    <!-- Top Navigation & Topology Strip -->
+    <header class="top-nav">
+      <div class="brand-block">
+        <div class="brand-icon">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polygon points="12 2 2 7 12 12 22 7 12 2"/>
+            <polyline points="2 17 12 22 22 17"/>
+            <polyline points="2 12 12 17 22 12"/>
+          </svg>
+        </div>
+        <div class="brand-text">
+          <h1>APEX STREAM <span class="version-tag">v2.4.0-prod</span></h1>
+          <p>Distributed Partition-Aware Log Ingestion &amp; Real-Time Detection Engine</p>
         </div>
       </div>
-      <div class="header-actions">
-        <div class="live-pill">
-          <span class="live-dot" id="live-indicator"></span>
-          <span id="stream-status-text">STREAM LIVE</span>
+
+      <div class="cluster-meta-strip">
+        <div class="cluster-meta-pill">
+          Cluster: <strong>kraft-prod-01</strong>
         </div>
-        <button class="btn-toggle-traffic" id="btn-toggle-traffic">Pause Stream</button>
+        <div class="cluster-meta-pill">
+          Brokers: <strong>3/3 In-Sync</strong>
+        </div>
+        <div class="cluster-meta-pill">
+          Group: <strong>cg-log-processors</strong>
+        </div>
+        <div class="status-indicator">
+          <span class="status-pulse" id="status-pulse"></span>
+          <span id="pipeline-status-text">STREAMING LIVE</span>
+        </div>
+        <button class="btn-secondary" id="btn-toggle-traffic">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="6" y="4" width="4" height="16"/>
+            <rect x="14" y="4" width="4" height="16"/>
+          </svg>
+          <span id="btn-traffic-label">Pause Stream</span>
+        </button>
       </div>
     </header>
 
-    <!-- Key Metrics Ribbon -->
-    <section class="stat-ribbon">
-      <div class="stat-card">
-        <span class="stat-label">Ingestion Velocity</span>
-        <span class="stat-value" id="stat-rate">0.0</span>
-        <span class="stat-subtext">Events / Second</span>
+    <!-- Architecture Pipeline Topology Flow Banner -->
+    <section class="pipeline-flow-banner">
+      <div class="flow-step">
+        <div class="step-num">1</div>
+        <div class="step-info">
+          <span class="step-label">Producers</span>
+          <span class="step-name">350 Multi-Tenant Clients <span class="step-badge" id="flow-prod-rate">~12 ev/s</span></span>
+        </div>
       </div>
-      <div class="stat-card">
-        <span class="stat-label">Events Processed</span>
-        <span class="stat-value" id="stat-consumed">0</span>
-        <span class="stat-subtext">Total Processed</span>
-      </div>
-      <div class="stat-card">
-        <span class="stat-label">Threat Alerts</span>
-        <span class="stat-value" id="stat-alerts" style="color: var(--red-crit);">0</span>
-        <span class="stat-subtext">EWMA &amp; Heuristics</span>
-      </div>
-      <div class="stat-card">
-        <span class="stat-label">Committed To DB</span>
-        <span class="stat-value" id="stat-stored" style="color: var(--green-ok);">0</span>
-        <span class="stat-subtext">Batch Idempotent Sink</span>
-      </div>
-      <div class="stat-card">
-        <span class="stat-label">Dead-Letter Queue</span>
-        <span class="stat-value" id="stat-dlq" style="color: var(--amber-warn);">0</span>
-        <span class="stat-subtext">Quarantined Records</span>
-      </div>
-    </section>
+      <div class="flow-connector">&rarr;</div>
 
-    <!-- Attack Simulation Command Deck -->
-    <section class="sim-controls-panel">
-      <div class="panel-header" style="margin-bottom: 8px;">
-        <h2><span>⚡</span> ADVERSARIAL ATTACK INJECTION CONSOLE</h2>
-        <span style="font-size: 0.75rem; color: var(--text-dim);">Trigger zero-lag simulated cyber threats against the active pipeline</span>
+      <div class="flow-step">
+        <div class="step-num">2</div>
+        <div class="step-info">
+          <span class="step-label">Broker Shards</span>
+          <span class="step-name">Topic: raw-logs <span class="step-badge">6 Partitions (ISR 3/3)</span></span>
+        </div>
       </div>
-      <div class="sim-buttons-row">
-        <button class="btn-attack" data-attack="brute_force" id="btn-brute-force">
-          <span class="btn-icon">🔐</span>
-          <div class="btn-text">
-            <h4>Brute-Force Auth</h4>
-            <p>Rapid auth failures &amp; compromise</p>
-          </div>
-        </button>
-        <button class="btn-attack" data-attack="volume_spike" id="btn-volume-spike">
-          <span class="btn-icon">📈</span>
-          <div class="btn-text">
-            <h4>Volume Spike Exfil</h4>
-            <p>85MB outbound data burst (EWMA)</p>
-          </div>
-        </button>
-        <button class="btn-attack" data-attack="rare_domain" id="btn-rare-domain">
-          <span class="btn-icon">🌐</span>
-          <div class="btn-text">
-            <h4>Rare C2 Domain</h4>
-            <p>Entropy-based rare domain query</p>
-          </div>
-        </button>
-        <button class="btn-attack" data-attack="beaconing" id="btn-beaconing">
-          <span class="btn-icon">🛰️</span>
-          <div class="btn-text">
-            <h4>C2 Beaconing Pattern</h4>
-            <p>Periodic pings with CV &lt; 0.2 jitter</p>
-          </div>
-        </button>
-      </div>
-    </section>
+      <div class="flow-connector">&rarr;</div>
 
-    <!-- Kafka Partition Health Monitor -->
-    <section class="partitions-panel">
-      <div class="panel-header">
-        <h2><span>🗄️</span> KAFKA PARTITION SHARDS DISTRIBUTION (TOPIC: RAW-LOGS)</h2>
-        <span style="font-size: 0.75rem; color: var(--text-dim);">Real-time shard partition hashing</span>
+      <div class="flow-step">
+        <div class="step-num">3</div>
+        <div class="step-info">
+          <span class="step-label">Stream Processing Core</span>
+          <span class="step-name">Validation R-11 &amp; EWMA Engine <span class="step-badge" id="flow-alert-count">0 Alerts</span></span>
+        </div>
       </div>
-      <div class="partition-grid">
-        <div class="partition-box">
-          <div class="part-title">Partition 0</div>
-          <div class="part-count" id="part-0">0</div>
-        </div>
-        <div class="partition-box">
-          <div class="part-title">Partition 1</div>
-          <div class="part-count" id="part-1">0</div>
-        </div>
-        <div class="partition-box">
-          <div class="part-title">Partition 2</div>
-          <div class="part-count" id="part-2">0</div>
-        </div>
-        <div class="partition-box">
-          <div class="part-title">Partition 3</div>
-          <div class="part-count" id="part-3">0</div>
-        </div>
-        <div class="partition-box">
-          <div class="part-title">Partition 4</div>
-          <div class="part-count" id="part-4">0</div>
-        </div>
-        <div class="partition-box">
-          <div class="part-title">Partition 5</div>
-          <div class="part-count" id="part-5">0</div>
+      <div class="flow-connector">&rarr;</div>
+
+      <div class="flow-step">
+        <div class="step-num">4</div>
+        <div class="step-info">
+          <span class="step-label">Storage Sinks</span>
+          <span class="step-name">TimescaleDB + Dead-Letter Queue <span class="step-badge">Idempotent</span></span>
         </div>
       </div>
     </section>
 
-    <!-- Main Deck: Threat Radar & Live Log Terminal -->
-    <main class="main-deck">
-      
-      <!-- Threat Radar -->
-      <section class="threat-panel">
-        <div class="panel-top-bar">
-          <h2><span>🚨</span> ANOMALY DETECTION RADAR</h2>
-          <span id="alert-counter" style="font-size: 0.75rem; color: var(--text-muted); font-family: var(--font-mono);">0 ALERTS</span>
+    <!-- Telemetry Precision Metrics Ribbon -->
+    <section class="telemetry-grid">
+      <div class="kpi-card">
+        <div class="kpi-header">
+          <span class="kpi-title">Ingestion Velocity</span>
+          <span class="kpi-tag">THROUGHPUT</span>
         </div>
-        <div class="alert-feed-list" id="alert-feed">
-          <div style="color: var(--text-dim); text-align: center; padding: 40px 10px; font-size: 0.85rem;">
-            No anomalies detected yet. Stream is clean or trigger an attack simulation above.
+        <div class="kpi-body">
+          <span class="kpi-value" id="kpi-rate">0.0</span>
+          <span class="kpi-unit">ev / sec</span>
+        </div>
+        <div class="kpi-footer positive">
+          <span>&bull;</span> <span>Balanced load across 6 shards</span>
+        </div>
+      </div>
+
+      <div class="kpi-card">
+        <div class="kpi-header">
+          <span class="kpi-title">End-To-End Latency</span>
+          <span class="kpi-tag">SLO &lt; 10ms</span>
+        </div>
+        <div class="kpi-body">
+          <span class="kpi-value" id="kpi-latency">4.2</span>
+          <span class="kpi-unit">p95 ms</span>
+        </div>
+        <div class="kpi-footer positive">
+          <span>&bull;</span> <span>SLA compliant (Zero queuing)</span>
+        </div>
+      </div>
+
+      <div class="kpi-card">
+        <div class="kpi-header">
+          <span class="kpi-title">Consumer Lag</span>
+          <span class="kpi-tag">OFFSET DELTA</span>
+        </div>
+        <div class="kpi-body">
+          <span class="kpi-value" id="kpi-lag">0</span>
+          <span class="kpi-unit">records</span>
+        </div>
+        <div class="kpi-footer positive">
+          <span>&bull;</span> <span>Real-time processing (0 lag)</span>
+        </div>
+      </div>
+
+      <div class="kpi-card">
+        <div class="kpi-header">
+          <span class="kpi-title">Committed To Database</span>
+          <span class="kpi-tag">BATCH CAP 1,000</span>
+        </div>
+        <div class="kpi-body">
+          <span class="kpi-value" id="kpi-stored">0</span>
+          <span class="kpi-unit">rows</span>
+        </div>
+        <div class="kpi-footer positive">
+          <span>&bull;</span> <span>ON CONFLICT DO NOTHING sink</span>
+        </div>
+      </div>
+
+      <div class="kpi-card">
+        <div class="kpi-header">
+          <span class="kpi-title">Dead-Letter Queue (DLQ)</span>
+          <span class="kpi-tag">QUARANTINE</span>
+        </div>
+        <div class="kpi-body">
+          <span class="kpi-value" id="kpi-dlq">0</span>
+          <span class="kpi-unit">records</span>
+        </div>
+        <div class="kpi-footer" id="kpi-dlq-footer">
+          <span>&bull;</span> <span>0.00% validation failure rate</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- Kafka Topic Partition Shard Matrix -->
+    <section class="partition-section">
+      <div class="section-head">
+        <h2>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="2" y="2" width="20" height="8" rx="2" ry="2"/>
+            <rect x="2" y="14" width="20" height="8" rx="2" ry="2"/>
+            <line x1="6" y1="6" x2="6.01" y2="6"/>
+            <line x1="6" y1="18" x2="6.01" y2="18"/>
+          </svg>
+          KAFKA PARTITION SHARDS (TOPIC: RAW-LOGS | REPLICATION FACTOR: 3)
+        </h2>
+        <span class="sub-note">Client-Sticky Hash Partitioning: hash(client_id) % 6</span>
+      </div>
+      <div class="shard-grid">
+        <div class="shard-card">
+          <div class="shard-header">
+            <span class="shard-id">PARTITION 0</span>
+            <span class="shard-status">ISR 3/3</span>
+          </div>
+          <div class="shard-count" id="shard-0-count">0</div>
+          <div class="shard-progress-bar"><div class="shard-progress-fill" id="shard-0-fill"></div></div>
+          <div class="shard-meta">
+            <span>Leader: broker-1</span>
+            <span id="shard-0-pct">0%</span>
+          </div>
+        </div>
+
+        <div class="shard-card">
+          <div class="shard-header">
+            <span class="shard-id">PARTITION 1</span>
+            <span class="shard-status">ISR 3/3</span>
+          </div>
+          <div class="shard-count" id="shard-1-count">0</div>
+          <div class="shard-progress-bar"><div class="shard-progress-fill" id="shard-1-fill"></div></div>
+          <div class="shard-meta">
+            <span>Leader: broker-2</span>
+            <span id="shard-1-pct">0%</span>
+          </div>
+        </div>
+
+        <div class="shard-card">
+          <div class="shard-header">
+            <span class="shard-id">PARTITION 2</span>
+            <span class="shard-status">ISR 3/3</span>
+          </div>
+          <div class="shard-count" id="shard-2-count">0</div>
+          <div class="shard-progress-bar"><div class="shard-progress-fill" id="shard-2-fill"></div></div>
+          <div class="shard-meta">
+            <span>Leader: broker-3</span>
+            <span id="shard-2-pct">0%</span>
+          </div>
+        </div>
+
+        <div class="shard-card">
+          <div class="shard-header">
+            <span class="shard-id">PARTITION 3</span>
+            <span class="shard-status">ISR 3/3</span>
+          </div>
+          <div class="shard-count" id="shard-3-count">0</div>
+          <div class="shard-progress-bar"><div class="shard-progress-fill" id="shard-3-fill"></div></div>
+          <div class="shard-meta">
+            <span>Leader: broker-1</span>
+            <span id="shard-3-pct">0%</span>
+          </div>
+        </div>
+
+        <div class="shard-card">
+          <div class="shard-header">
+            <span class="shard-id">PARTITION 4</span>
+            <span class="shard-status">ISR 3/3</span>
+          </div>
+          <div class="shard-count" id="shard-4-count">0</div>
+          <div class="shard-progress-bar"><div class="shard-progress-fill" id="shard-4-fill"></div></div>
+          <div class="shard-meta">
+            <span>Leader: broker-2</span>
+            <span id="shard-4-pct">0%</span>
+          </div>
+        </div>
+
+        <div class="shard-card">
+          <div class="shard-header">
+            <span class="shard-id">PARTITION 5</span>
+            <span class="shard-status">ISR 3/3</span>
+          </div>
+          <div class="shard-count" id="shard-5-count">0</div>
+          <div class="shard-progress-bar"><div class="shard-progress-fill" id="shard-5-fill"></div></div>
+          <div class="shard-meta">
+            <span>Leader: broker-3</span>
+            <span id="shard-5-pct">0%</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Adversarial Attack Injection Command Deck -->
+    <section class="attack-deck">
+      <div class="attack-deck-header">
+        <h3>ADVERSARIAL STRESS TESTING &amp; MITRE ATT&amp;CK INJECTION CONSOLE</h3>
+        <span style="font-size: 11px; font-family: var(--font-mono); color: var(--text-muted);">Real-time anomaly detector evaluation</span>
+      </div>
+      <div class="attack-buttons-grid">
+        <button class="btn-adversary" data-attack="brute_force" id="btn-atk-bf">
+          <span class="adv-code">T1110.001</span>
+          <div class="adv-content">
+            <h4>Brute-Force Credential Stuffing</h4>
+            <p>Injects 8 rapid auth failures &amp; triggers compromise escalation on success.</p>
+          </div>
+        </button>
+
+        <button class="btn-adversary" data-attack="volume_spike" id="btn-atk-vs">
+          <span class="adv-code">T1048.003</span>
+          <div class="adv-content">
+            <h4>Volume Exfiltration Surge</h4>
+            <p>Injects 85MB burst payload tested via pre-update EWMA z-score ($z &gt; 3.0$).</p>
+          </div>
+        </button>
+
+        <button class="btn-adversary" data-attack="rare_domain" id="btn-atk-rd">
+          <span class="adv-code">T1071.001</span>
+          <div class="adv-content">
+            <h4>Rare External C2 Contact</h4>
+            <p>Queries high-entropy suspicious destination domain with &ge;50KB egress.</p>
+          </div>
+        </button>
+
+        <button class="btn-adversary" data-attack="beaconing" id="btn-atk-bc">
+          <span class="adv-code">T1071.004</span>
+          <div class="adv-content">
+            <h4>Periodic C2 Beaconing</h4>
+            <p>Injects 8 low-jitter interval heartbeats with coefficient of variation $CV \le 0.15$.</p>
+          </div>
+        </button>
+      </div>
+    </section>
+
+    <!-- Main Dual Observability Split: SIEM Threat Radar & Log Explorer -->
+    <main class="main-observability-split">
+
+      <!-- Left Panel: SIEM Real-Time Anomaly Radar -->
+      <section class="siem-panel">
+        <div class="panel-header-bar">
+          <h2>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+            </svg>
+            STREAMING THREAT DETECTION RADAR
+          </h2>
+          <span class="alert-count-pill" id="badge-alert-count">0 INCIDENTS</span>
+        </div>
+        <div class="alert-stream-container" id="alert-stream">
+          <div style="color: var(--text-dim); text-align: center; padding: 48px 16px; font-size: 11px; font-family: var(--font-mono);">
+            Awaiting streaming alerts. Baseline traffic is clean.<br>Trigger a MITRE ATT&amp;CK scenario above to evaluate detectors.
           </div>
         </div>
       </section>
 
-      <!-- Live Monospace Log Terminal -->
-      <section class="log-terminal-panel">
-        <div class="panel-top-bar">
-          <h2><span>💻</span> REAL-TIME EVENT STREAM</h2>
-          <input type="text" class="terminal-search" id="log-search" placeholder="Search client, IP, path...">
+      <!-- Right Panel: Enterprise Log Stream & Query Explorer -->
+      <section class="log-explorer-panel">
+        <div class="panel-header-bar">
+          <h2>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="4 17 10 11 4 5"/>
+              <line x1="12" y1="19" x2="20" y2="19"/>
+            </svg>
+            LIVE DISTRIBUTED LOG STREAM (INGESTION BUFFER)
+          </h2>
+          <span style="font-size: 11px; font-family: var(--font-mono); color: var(--text-muted);" id="log-count-indicator">Showing latest 50 events</span>
         </div>
-        <div class="terminal-logs-window" id="terminal-logs">
-          <!-- Live events populated dynamically -->
+
+        <div class="log-toolbar">
+          <div class="log-filter-facets">
+            <button class="filter-chip active" data-filter="all">ALL</button>
+            <button class="filter-chip" data-filter="2xx">2xx OK</button>
+            <button class="filter-chip" data-filter="4xx">4xx WARN</button>
+            <button class="filter-chip" data-filter="5xx">5xx ERR</button>
+            <button class="filter-chip" data-filter="auth">AUTH</button>
+            <button class="filter-chip" data-filter="api">API</button>
+          </div>
+          <div class="log-search-box">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right: 6px; color: var(--text-muted);">
+              <circle cx="11" cy="11" r="8"/>
+              <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+            </svg>
+            <input type="text" id="log-search-input" placeholder="Search client, IP, path, category...">
+          </div>
+        </div>
+
+        <div class="log-table-container">
+          <div class="log-table-head">
+            <div>TIMESTAMP</div>
+            <div>SHARD</div>
+            <div>STATUS</div>
+            <div>CATEGORY</div>
+            <div>METHOD &amp; PATH</div>
+            <div>CLIENT</div>
+            <div style="text-align: right;">PAYLOAD</div>
+          </div>
+          <div class="log-row-stream" id="log-table-rows">
+            <!-- Dynamically populated rows -->
+          </div>
         </div>
       </section>
 
     </main>
   </div>
 
-  <script src="app.js"></script>
+  <!-- Interactive JSON Document Inspector Modal -->
+  <div class="log-inspector-modal" id="inspector-modal">
+    <div class="inspector-card">
+      <div class="inspector-header">
+        <h3>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+            <polyline points="14 2 14 8 20 8"/>
+            <line x1="16" y1="13" x2="8" y2="13"/>
+            <line x1="16" y1="17" x2="8" y2="17"/>
+            <polyline points="10 9 9 9 8 9"/>
+          </svg>
+          DOCUMENT RECORD INSPECTOR
+        </h3>
+        <button class="btn-close-inspector" id="btn-close-inspector">&times;</button>
+      </div>
+      <div class="inspector-body" id="inspector-json-content">
+        <!-- Rendered JSON payload -->
+      </div>
+    </div>
+  </div>
+
+  <script type="module" src="app.js"></script>
 </body>
 </html>
