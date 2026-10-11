@@ -8,7 +8,5 @@
   ],
   "extraPaths": [
     "."
-  ],
-  "pythonPlatform": "Windows",
-  "pythonVersion": "3.14"
+  ]
 }
